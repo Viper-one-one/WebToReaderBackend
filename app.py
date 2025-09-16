@@ -44,6 +44,8 @@ def get_webpage_content(url):
                         print(f"Found inner div for volume: {volume_title}")
                         chapter_links = [a['href'] for p in inner_div.find_all('p') for a in p.find_all('a', href=True)]
                         books[volume_title] = chapter_links
+                        print(f"Chapters for {volume_title}: {chapter_links}")
+        print(f"All books found: {books}")
         return books
     except requests.RequestException as e:
         app.logger.error(f"Error fetching URL: {e}")
