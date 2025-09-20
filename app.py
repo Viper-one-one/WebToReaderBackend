@@ -15,6 +15,13 @@ def log_request_info():
     data = request.json
     print(f"Request data: {data}")
 
+@app.after_request
+def log_response_info(response):
+    app.logger.debug('Response status: %s', response.status)
+    app.logger.debug('Response body: %s', response.get_data())
+    print(f"Response: {response.json}")
+    return response
+
 def validate_url(data):
     if 'url' not in data:
         app.logger.error("Missing 'url' in request data")
@@ -40,7 +47,7 @@ def get_webpage_content(url):
                     if inner_div:
                         chapter_links = [a['href'] for p in inner_div.find_all('p') for a in p.find_all('a', href=True)]
                         books[volume_title] = chapter_links
-        print(f"All books found: {books}")
+        #print(f"All books found: {books}")
         return books
     except requests.RequestException as e:
         app.logger.error(f"Error fetching URL: {e}")
@@ -52,12 +59,26 @@ def fetch_chapter(url):
     content = soup.find('div', class_='entry-content alignfull wp-block-post-content has-global-padding is-layout-constrained wp-block-post-content-is-layout-constrained').get_text(separator='\n')
     return content.strip()
 
-@app.after_request
-def log_response_info(response):
-    app.logger.debug('Response status: %s', response.status)
-    app.logger.debug('Response body: %s', response.get_data())
-    print(f"Response: {response.json}")
-    return response
+def process_chapters(books):
+    processed_books = {}
+    for volume, links in books.items():
+        print(f"Processing {volume} with {len(links)} chapters")
+        chapters = []
+        for i, link in enumerate(links, start=1):
+            print(f"Fetching chapter {i} from {link}")
+            chapter_text = fetch_chapter(link)
+            chapters.append({'title': f'Chapter {i}', 'content': chapter_text})
+        processed_books[volume] = chapters
+    print(f"Processed books: {processed_books}")
+    return processed_books
+
+def create_epub(books):
+    # Placeholder for EPUB creation logic
+    pass
+
+def create_pdf(books):
+    # Placeholder for PDF creation logic
+    pass
 
 @app.route('/process', methods=['POST', 'OPTIONS'])
 def process():
@@ -68,10 +89,18 @@ def process():
         if books is None:
             return {"error": "Failed to fetch or parse the webpage"}, 500
         if request.json['format'] == 'PDF':
-            print("PDF format requested, but not implemented.")
+            # books = process_chapters(books)
+            # create_pdf(books)
+            pass
         if request.json['format'] == 'EPUB':
-            print("EPUB format requested, but not implemented.")
+            # books = process_chapters(books)
+            # create_epub(books)
+            pass
         return {"books": books}, 200
     else:
         return {"error": "Invalid url"}, 200
     
+@app.route('/get_book', methods=['POST', 'OPTIONS'])
+def get_book():
+    # Placeholder for getting a specific book's content
+    return {"book": "Book content goes here"}, 200
