@@ -100,7 +100,12 @@ def process():
     else:
         return {"error": "Invalid url"}, 200
     
-@app.route('/get_book', methods=['POST', 'OPTIONS'])
-def get_book():
+@app.route('/get_books', methods=['GET', 'OPTIONS'])
+def get_books():
     # Placeholder for getting a specific book's content
-    return {"book": "Book content goes here"}, 200
+    return {"books": "Books content goes here"}, 200
+
+@app.route('/download', methods=['POST', 'OPTIONS'])
+def download():
+    # Placeholder for download logic
+    return {"message": "Download endpoint"}, 200
