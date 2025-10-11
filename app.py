@@ -3,9 +3,52 @@ from flask_cors import CORS
 import requests
 from bs4 import BeautifulSoup
 import re
+import logging
+import os
+import urllib.parse
+from urllib.request import urlretrieve
+from logging.handlers import RotatingFileHandler
 
 app = Flask(__name__)
 CORS(app)
+handler = RotatingFileHandler("debug.log", maxBytes=0, backupCount=1)
+handler.setLevel(logging.DEBUG)
+handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+
+# Custom handler that limits to 500 lines
+class LineCountHandler(logging.Handler):
+    def __init__(self, filename, max_lines=500):
+        super().__init__()
+        self.filename = filename
+        self.max_lines = max_lines
+        self.line_count = 0
+        
+    def emit(self, record):
+        try:
+            msg = self.format(record)
+            with open(self.filename, 'a') as f:
+                f.write(msg + '\n')
+            self.line_count += 1
+            
+            if self.line_count >= self.max_lines:
+                self._trim_file()
+                self.line_count = 0
+        except Exception:
+            self.handleError(record)
+    
+    def _trim_file(self):
+        try:
+            with open(self.filename, 'r') as f:
+                lines = f.readlines()
+            with open(self.filename, 'w') as f:
+                f.writelines(lines[-self.max_lines:])
+        except Exception:
+            pass
+
+line_handler = LineCountHandler("debug.log", max_lines=500)
+line_handler.setLevel(logging.DEBUG)
+line_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+app.logger.addHandler(line_handler)
 
 @app.before_request
 def log_request_info():
@@ -59,17 +102,51 @@ def fetch_chapter(url):
     content = soup.find('div', class_='entry-content alignfull wp-block-post-content has-global-padding is-layout-constrained wp-block-post-content-is-layout-constrained').get_text(separator='\n')
     return content.strip()
 
+def fetch_illustrations(url):
+    response = requests.get(url)
+    soup = BeautifulSoup(response.content, 'html.parser')
+    images = []
+    
+    content_div = soup.find('div', class_='entry-content alignfull wp-block-post-content has-global-padding is-layout-constrained wp-block-post-content-is-layout-constrained')
+    if content_div:
+        img_figures = content_div.find_all('figure', class_='wp-block-image')
+        for figure in img_figures:
+            img = figure.find('img')
+            if img and img.get('src'):
+                images.append({
+                    'src': img['src'],
+                    'alt': img.get('alt', ''),
+                    'caption': figure.find('figcaption').get_text(strip=True) if figure.find('figcaption') else ''
+                })
+    
+    return images
+
+def download_image(img_url, save_dir, filename):
+    try:
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+        
+        # Get file extension from URL
+        parsed_url = urllib.parse.urlparse(img_url)
+        ext = os.path.splitext(parsed_url.path)[1]
+        if not ext:
+            ext = '.jpg'  # Default extension
+        
+        filepath = os.path.join(save_dir, f"{filename}{ext}")
+        urlretrieve(img_url, filepath)
+        return filepath
+    except Exception as e:
+        app.logger.error(f"Error downloading image {img_url}: {e}")
+        return None
+
 def process_chapters(books):
     processed_books = {}
     for volume, links in books.items():
         print(f"Processing {volume} with {len(links)} chapters")
         chapters = []
+        
         for i, link in enumerate(links, start=1):
-            print(f"Fetching chapter {i} from {link}")
-            chapter_text = fetch_chapter(link)
-            chapters.append({'title': f'Chapter {i}', 'content': chapter_text})
-        processed_books[volume] = chapters
-    print(f"Processed books: {processed_books}")
+            pass
     return processed_books
 
 def create_epub(books):
@@ -88,22 +165,21 @@ def process():
         
         if books is None:
             return {"error": "Failed to fetch or parse the webpage"}, 500
-        if request.json['format'] == 'PDF':
-            # books = process_chapters(books)
-            # create_pdf(books)
-            pass
-        if request.json['format'] == 'EPUB':
-            # books = process_chapters(books)
-            # create_epub(books)
-            pass
-        return {"books": books}, 200
+        volumes = [{"id": i, "title": volume} for i, volume in enumerate(books.keys(), start=1)]
+        return {"books": volumes}, 200
     else:
         return {"error": "Invalid url"}, 200
     
 @app.route('/get_books', methods=['GET', 'OPTIONS'])
 def get_books():
-    # Placeholder for getting a specific book's content
-    return {"books": "Books content goes here"}, 200
+    if validate_url(request.json):
+        url = request.json['url']
+        books = get_webpage_content(url)
+        
+        if books is None:
+            return {"error": "Failed to fetch or parse the webpage"}, 500
+        volumes = [{"id": i, "title": volume} for i, volume in enumerate(books.keys(), start=1)]
+        return {"books": volumes}, 200
 
 @app.route('/download', methods=['POST', 'OPTIONS'])
 def download():
