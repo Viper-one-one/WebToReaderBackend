@@ -11,6 +11,11 @@ from logging.handlers import RotatingFileHandler
 
 app = Flask(__name__)
 CORS(app)
+
+# Enable debug mode and set logging level
+app.debug = True
+app.logger.setLevel(logging.DEBUG)
+
 handler = RotatingFileHandler("debug.log", maxBytes=0, backupCount=1)
 handler.setLevel(logging.DEBUG)
 handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
@@ -61,18 +66,28 @@ def log_request_info():
 @app.after_request
 def log_response_info(response):
     app.logger.debug('Response status: %s', response.status)
-    app.logger.debug('Response body: %s', response.get_data())
-    print(f"Response: {response.json}")
+    app.logger.debug('Response headers: %s', response.headers)
+    try:
+        response_data = response.get_data(as_text=True)
+        app.logger.debug('Response body: %s', response_data)
+        print(f"Response body: {response_data}")
+    except Exception as e:
+        app.logger.debug('Could not log response body: %s', e)
     return response
 
 def validate_url(data):
+    app.logger.debug('Validating URL data: %s', data)
+    if data is None:
+        app.logger.error("Request data is None")
+        return False
     if 'url' not in data:
         app.logger.error("Missing 'url' in request data")
         return False
     url = data['url']
     if not isinstance(url, str) or not url.startswith(('http://', 'https://')):
-        app.logger.error("Invalid URL format (requires http:// or https://)")
+        app.logger.error("Invalid URL format (requires http:// or https://): %s", url)
         return False
+    app.logger.debug('URL validation passed for: %s', url)
     return True
 
 def get_webpage_content(url):
@@ -159,16 +174,28 @@ def create_pdf(books):
 
 @app.route('/process', methods=['POST', 'OPTIONS'])
 def process():
+    app.logger.debug('Received /process request')
+    app.logger.debug('Request JSON: %s', request.json)
+    
+    if request.method == 'OPTIONS':
+        app.logger.debug('Handling OPTIONS request')
+        return '', 200
+    
     if validate_url(request.json):
         url = request.json['url']
+        app.logger.debug('Processing URL: %s', url)
         books = get_webpage_content(url)
         
         if books is None:
+            app.logger.error('Failed to get webpage content')
             return {"error": "Failed to fetch or parse the webpage"}, 500
+        
         volumes = [{"id": i, "title": volume} for i, volume in enumerate(books.keys(), start=1)]
+        app.logger.debug('Found %d volumes: %s', len(volumes), [v['title'] for v in volumes])
         return {"books": volumes}, 200
     else:
-        return {"error": "Invalid url"}, 200
+        app.logger.error('URL validation failed')
+        return {"error": "Invalid url"}, 400
     
 @app.route('/get_books', methods=['GET', 'OPTIONS'])
 def get_books():
@@ -185,3 +212,6 @@ def get_books():
 def download():
     # Placeholder for download logic
     return {"message": "Download endpoint"}, 200
+
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0', port=5000)
