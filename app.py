@@ -10,7 +10,11 @@ from urllib.request import urlretrieve
 from logging.handlers import RotatingFileHandler
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={
+    r"/process": {"origins": "*", "methods": ["POST", "OPTIONS"]},
+    r"/get_books": {"origins": "*", "methods": ["GET", "OPTIONS"]},
+    r"/download": {"origins": "*", "methods": ["POST", "OPTIONS"]}
+})
 
 # Enable debug mode and set logging level
 app.debug = True
@@ -60,8 +64,16 @@ def log_request_info():
     app.logger.debug('Headers: %s', request.headers)
     app.logger.debug('Body: %s', request.get_data())
     app.logger.debug('Request method: %s', request.method)
-    data = request.json
-    print(f"Request data: {data}")
+    
+    # Only try to access JSON for POST requests with JSON content type
+    if request.method == 'POST' and request.content_type == 'application/json':
+        try:
+            data = request.json
+            print(f"Request data: {data}")
+        except Exception as e:
+            app.logger.debug('Could not parse JSON: %s', e)
+    else:
+        app.logger.debug('Skipping JSON parsing for %s request', request.method)
 
 @app.after_request
 def log_response_info(response):
@@ -174,13 +186,18 @@ def create_pdf(books):
 
 @app.route('/process', methods=['POST', 'OPTIONS'])
 def process():
-    app.logger.debug('Received /process request')
-    app.logger.debug('Request JSON: %s', request.json)
+    app.logger.debug('Received /process request - Method: %s', request.method)
     
     if request.method == 'OPTIONS':
         app.logger.debug('Handling OPTIONS request')
-        return '', 200
+        response = app.make_default_options_response()
+        headers = response.headers
+        headers['Access-Control-Allow-Origin'] = '*'
+        headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
+        headers['Access-Control-Allow-Headers'] = 'Content-Type, Accept'
+        return response
     
+    app.logger.debug('Request JSON: %s', request.json)
     if validate_url(request.json):
         url = request.json['url']
         app.logger.debug('Processing URL: %s', url)
@@ -197,16 +214,22 @@ def process():
         app.logger.error('URL validation failed')
         return {"error": "Invalid url"}, 400
     
-@app.route('/get_books', methods=['GET', 'OPTIONS'])
+@app.route('/get_books', methods=['POST', 'OPTIONS'])
 def get_books():
-    if validate_url(request.json):
-        url = request.json['url']
-        books = get_webpage_content(url)
-        
-        if books is None:
-            return {"error": "Failed to fetch or parse the webpage"}, 500
-        volumes = [{"id": i, "title": volume} for i, volume in enumerate(books.keys(), start=1)]
-        return {"books": volumes}, 200
+    app.logger.debug('Received /get_books request - Method: %s', request.method)
+    
+    if request.method == 'OPTIONS':
+        app.logger.debug('Handling OPTIONS request for /get_books')
+        response = app.make_default_options_response()
+        headers = response.headers
+        headers['Access-Control-Allow-Origin'] = '*'
+        headers['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
+        headers['Access-Control-Allow-Headers'] = 'Content-Type, Accept'
+        return response
+    
+    # Return some sample books for now
+    volumes = [{"id": 1, "title": "Sample Book 1"}, {"id": 2, "title": "Sample Book 2"}]
+    return {"books": volumes}, 200
 
 @app.route('/download', methods=['POST', 'OPTIONS'])
 def download():
