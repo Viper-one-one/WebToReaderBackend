@@ -214,21 +214,21 @@ def process():
         app.logger.error('URL validation failed')
         return {"error": "Invalid url"}, 400
     
-@app.route('/get_books', methods=['POST', 'OPTIONS'])
+@app.route('/post_books', methods=['POST', 'OPTIONS'])
 def get_books():
-    app.logger.debug('Received /get_books request - Method: %s', request.method)
-    
+    app.logger.debug('Received /post_books request - Method: %s', request.method)
+
     if request.method == 'OPTIONS':
-        app.logger.debug('Handling OPTIONS request for /get_books')
+        app.logger.debug('Handling OPTIONS request for /post_books')
         response = app.make_default_options_response()
         headers = response.headers
         headers['Access-Control-Allow-Origin'] = '*'
-        headers['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
+        headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
         headers['Access-Control-Allow-Headers'] = 'Content-Type, Accept'
         return response
-    
-    # Return some sample books for now
-    volumes = [{"id": 1, "title": "Sample Book 1"}, {"id": 2, "title": "Sample Book 2"}]
+    app.logger.debug('Request JSON: %s', request.json)
+    print(f"Request JSON: {request.json}")
+    volumes = [{"id": 1, "title": "Sample Volume"}]
     return {"books": volumes}, 200
 
 @app.route('/download', methods=['POST', 'OPTIONS'])
