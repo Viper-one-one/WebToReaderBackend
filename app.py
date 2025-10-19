@@ -237,6 +237,7 @@ def download():
     print(f"All books fetched: {books}")
     
     processed_books = process_chapters({k: books[k] for k in selected_books if k in books})
+    # error here no valid books returned
     if not processed_books:
         return {"error": "No valid books to process"}, 400
     print(f"Processed books: {processed_books}")
