@@ -8,6 +8,13 @@ import os
 import urllib.parse
 from urllib.request import urlretrieve
 from logging.handlers import RotatingFileHandler
+from reportlab.lib.pagesizes import letter, A4
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Image
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.lib.enums import TA_JUSTIFY, TA_CENTER
+import io
+from datetime import datetime
 
 app = Flask(__name__)
 CORS(app, resources={
@@ -76,9 +83,19 @@ def validate_url(data):
 def get_webpage_content(url):
     print(f"Fetching webpage content from URL: {url}")
     try:
-        response = requests.get(url)
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Accept-Encoding': 'gzip, deflate',
+            'Accept-Charsets': 'utf-8'
+        }
+        response = requests.get(url, headers=headers, timeout=60)
         response.raise_for_status()
-        soup = BeautifulSoup(response.content, 'html.parser')
+        response.encoding = 'utf-8'
+        app.logger.debug(f"Response encoding: {response.encoding}")
+        app.logger.debug(f"Apparent encoding: {response.apparent_encoding}")
+        soup = BeautifulSoup(response.content, 'html.parser', from_encoding='utf-8')
         books = {}
         for h3 in soup.find_all('h3'):
             if re.match(r"Volume\s+\d+", h3.text.strip()):
@@ -159,7 +176,39 @@ def process_chapters(books):
         chapters = []
         
         for i, link in enumerate(links, start=1):
-            pass
+            try:
+                # Check if this is the illustrations chapter
+                if '/illustrations/' in link or link.endswith('-illustrations/'):
+                    print(f"Fetching illustrations from chapter {i}: {link}")
+                    illustrations = fetch_illustrations(link)
+                    chapters.append({
+                        'chapter_num': i,
+                        'url': link,
+                        'type': 'illustrations',
+                        'images': illustrations
+                    })
+                else:
+                    print(f"Fetching chapter {i}: {link}")
+                    content = fetch_chapter(link)
+                    chapters.append({
+                        'chapter_num': i,
+                        'url': link,
+                        'type': 'text',
+                        'content': content
+                    })
+            except Exception as e:
+                app.logger.error(f"Error processing chapter {i} ({link}): {e}")
+                continue
+
+            processed_books[volume] = chapters
+    # Log chapter 2 content for all processed books
+        # for volume, chapters in processed_books.items():
+        #     if len(chapters) >= 2:
+        #         chapter_2 = chapters[1]  # Index 1 is chapter 2
+        #         if chapter_2['type'] == 'text':
+        #             app.logger.debug(f"Chapter 2 content for {volume}: {chapter_2['content'][:10]}...")
+        #         elif chapter_2['type'] == 'illustrations':
+        #             app.logger.debug(f"Chapter 2 for {volume} is illustrations with {len(chapter_2['images'])} images")
     return processed_books
 
 def create_epub(books):
@@ -167,8 +216,69 @@ def create_epub(books):
     pass
 
 def create_pdf(books):
-    # Placeholder for PDF creation logic
-    pass
+    for volume in books:
+        try:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            pdf_filename = f"{volume.replace(' ', '_')}_{timestamp}.pdf"
+            filepath = os.path.join("downloads", pdf_filename)
+            if not os.path.exists("downloads"):
+                os.makedirs("downloads")
+            doc = SimpleDocTemplate(filepath, pagesize=A4, rightMargin=72, leftMargin=72, topMargin=72, bottomMargin=18)
+            styles = getSampleStyleSheet()
+            title_style = ParagraphStyle(
+                name='TitleStyle',
+                parent=styles['Heading1'],
+                fontSize=24,
+                spaceAfter=20,
+                alignment=TA_CENTER
+            )
+
+            chapter_style = ParagraphStyle(
+                name='ChapterStyle',
+                parent=styles['Heading2'],
+                fontSize=18,
+                spaceAfter=12,
+            )
+
+            body_style = ParagraphStyle(
+                name='BodyStyle',
+                parent=styles['BodyText'],
+                fontSize=12,
+                spaceAfter=12,
+            )
+
+            content = []
+            print(f"Creating PDF for {volume}")
+            for volume, chapters in books.items():
+                
+                content.append(Paragraph(volume, title_style))
+                content.append(Spacer(1, 12))
+
+                for chapter in chapters:
+                    if chapter['type'] == 'text':
+                        content.append(Paragraph(f"Chapter {chapter['chapter_num']}", chapter_style))
+                        for para in chapter['content'].split('\n'):
+                            if para.strip():
+                                content.append(Paragraph(para.strip(), body_style))
+                                content.append(Spacer(1, 12))
+                        content.append(PageBreak())
+                    elif chapter['type'] == 'illustrations':
+                        content.append(Paragraph(f"Illustrations - Chapter {chapter['chapter_num']}", chapter_style))
+                        for img_info in chapter['images']:
+                            img_path = download_image(img_info['src'], "temp_images", f"{volume}_chapter{chapter['chapter_num']}_{chapter['images'].index(img_info)+1}")
+                            if img_path:
+                                img = Image(img_path, width=4*inch, height=4*inch)
+                                content.append(img)
+                                if img_info['caption']:
+                                    content.append(Paragraph(img_info['caption'], body_style))
+                                content.append(Spacer(1, 12))
+                        content.append(PageBreak())
+            doc.build(content)
+            app.logger.info(f"Created PDF: {filepath}")
+        except Exception as e:
+            app.logger.error(f"Error creating PDF for {volume}: {e}")
+            continue
+    
 
 # Flask routes and request handlers
 @app.route('/process', methods=['POST', 'OPTIONS'])
@@ -234,18 +344,27 @@ def download():
     if books is None:
         app.logger.error('Failed to get webpage content for download')
         return {"error": "Failed to fetch or parse the webpage"}, 500
-    print(f"All books fetched: {books}")
-    
-    processed_books = process_chapters({k: books[k] for k in selected_books if k in books})
+    #print(f"All books fetched: {books}")
+    # selected_books = ['1'] books = {'Volume 1': [...], 'Volume 2': [...]}
+    selected_books = [str(i) for i in selected_books]
+    filtered_books = {}
+    for volume_key, chapters in books.items():
+        match = re.match(r"Volume\s+(\d+)", volume_key)
+        if match:
+            volume_num = match.group(1)
+            if volume_num in selected_books:
+                filtered_books[volume_key] = chapters
+    #print(f"Filtered books for processing: {filtered_books}")
+    processed_books = process_chapters(filtered_books)
     # error here no valid books returned
     if not processed_books:
         return {"error": "No valid books to process"}, 400
-    print(f"Processed books: {processed_books}")
+    #print(f"Processed books: {processed_books}")
     
-    if processed_books:
-        first_book = next(iter(processed_books.values()))
-        content_preview = str(first_book)[:500]
-        print(f"First book content (first 500 chars): {content_preview}")
+    if selected_format == 'epub':
+        create_epub(processed_books)
+    elif selected_format == 'pdf':
+        create_pdf(processed_books)
     return {"message": "Download endpoint"}, 200
 
 @app.before_request
