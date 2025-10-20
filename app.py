@@ -17,6 +17,8 @@ import io
 from datetime import datetime
 from PIL import Image as PILImage
 import tempfile
+import zipfile
+import shutil
 
 app = Flask(__name__)
 CORS(app, resources={
@@ -248,6 +250,115 @@ def create_epub(books):
     # Placeholder for EPUB creation logic
     pass
 
+def create_single_pdf(volume_name: str, chapters: list):
+    """Create a PDF for a single volume."""
+    print(f"Creating PDF for volume: {volume_name}")
+    
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    # Create filename based on volume name
+    safe_volume_name = volume_name.replace(' ', '_').replace('Volume_', 'Vol')
+    pdf_filename = f"{safe_volume_name}_{timestamp}.pdf"
+    filepath = os.path.join("downloads", pdf_filename)
+    
+    if not os.path.exists("downloads"):
+        os.makedirs("downloads")
+    
+    doc = SimpleDocTemplate(filepath, pagesize=A4, rightMargin=72, leftMargin=72, topMargin=72, bottomMargin=18)
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle(
+        name='TitleStyle',
+        parent=styles['Heading1'],
+        fontSize=24,
+        spaceAfter=20,
+        alignment=TA_CENTER
+    )
+
+    chapter_style = ParagraphStyle(
+        name='ChapterStyle',
+        parent=styles['Heading2'],
+        fontSize=18,
+        spaceAfter=12,
+        alignment=TA_CENTER
+    )
+
+    body_style = ParagraphStyle(
+        name='BodyStyle',
+        parent=styles['BodyText'],
+        fontSize=12,
+        spaceAfter=3
+    )
+
+    content = []
+    
+    # Calculate available width (page width minus margins)
+    page_width = A4[0] - 144  # 72 points margin on each side = 144 total
+    max_width = page_width  # Use 100% of available width
+    max_height = A4[1] - 144  # Use 100% of available height
+    
+    # Add volume title
+    print(f"Adding {volume_name} to PDF")
+    content.append(Paragraph(volume_name, title_style))
+    content.append(Spacer(1, 12))
+
+    for chapter in chapters:
+        if chapter['type'] == 'text':
+            content.append(Paragraph(f"Chapter {chapter['chapter_num']}", chapter_style))
+            for para in chapter['content'].split('\n'):
+                if para.strip():
+                    content.append(Paragraph(para.strip(), body_style))
+                    content.append(Spacer(1, 12))
+            content.append(PageBreak())
+        elif chapter['type'] == 'illustrations':
+            content.append(Paragraph(f"Illustrations - Chapter {chapter['chapter_num']}", chapter_style))
+            for img_info in chapter['images']:
+                img_path = download_image(img_info['src'], "temp_images", f"{safe_volume_name}_chapter{chapter['chapter_num']}_{chapter['images'].index(img_info)+1}")
+                if img_path and os.path.exists(img_path):
+                    try:
+                        # Get original image dimensions
+                        with PILImage.open(img_path) as pil_img:
+                            orig_width, orig_height = pil_img.size
+                            aspect_ratio = orig_width / orig_height
+                        
+                        # Calculate dimensions while preserving aspect ratio
+                        if orig_width > orig_height:
+                            img_width = min(max_width, orig_width)
+                            img_height = img_width / aspect_ratio
+                            if img_height > max_height:
+                                img_height = max_height
+                                img_width = img_height * aspect_ratio
+                        else:
+                            img_height = min(max_height, orig_height)
+                            img_width = img_height * aspect_ratio
+                            if img_width > max_width:
+                                img_width = max_width
+                                img_height = img_width / aspect_ratio
+                        
+                        img_width_points = min(img_width, max_width)
+                        img_height_points = min(img_height, max_height)
+                        
+                        app.logger.debug(f"Original image size: {orig_width}x{orig_height}, PDF size: {img_width_points}x{img_height_points}")
+                        
+                        img = Image(img_path, width=img_width_points, height=img_height_points)
+                        content.append(img)
+                        
+                        if img_info['caption']:
+                            content.append(Paragraph(img_info['caption'], body_style))
+                        content.append(Spacer(1, 12))
+                        
+                    except Exception as e:
+                        app.logger.error(f"Error processing image {img_path}: {e}")
+                        content.append(Paragraph(f"[Image could not be loaded: {img_info.get('alt', 'No description')}]", body_style))
+                        content.append(Spacer(1, 12))
+            content.append(PageBreak())
+    
+    try:
+        doc.build(content)
+        app.logger.info(f"Created PDF: {filepath}")
+        return filepath
+    except Exception as e:
+        app.logger.error(f"Error creating PDF for {volume_name}: {e}")
+        return None
+
 def create_pdf(books: dict):
     print(f"Creating PDF for books: {list(books.keys())}")
     
@@ -276,13 +387,14 @@ def create_pdf(books: dict):
         parent=styles['Heading2'],
         fontSize=18,
         spaceAfter=12,
+        alignment=TA_CENTER
     )
 
     body_style = ParagraphStyle(
         name='BodyStyle',
         parent=styles['BodyText'],
         fontSize=12,
-        spaceAfter=12,
+        spaceAfter=3
     )
 
     content = []
@@ -475,19 +587,56 @@ def download():
     #print(f"Processed books for download: {processed_books}.")
     if not processed_books:
         return {"error": "No valid books to process"}, 400
-    #print(f"Processed books: {processed_books}")
-    #print(f"Type of processed_books: {type(processed_books)}, Type of selected_format: {type(selected_format)}")
-    path = ""
-    print(selected_format == 'PDF')
-    if selected_format == 'EPUB' or selected_format == 'epub':
+    
+    # Create separate PDFs for each book
+    pdf_paths = []
+    if selected_format == 'PDF' or selected_format == 'pdf':
+        print("Creating separate PDFs for each book...")
+        for volume_name, chapters in processed_books.items():
+            pdf_path = create_single_pdf(volume_name, chapters)
+            if pdf_path:
+                pdf_paths.append(pdf_path)
+        
+        if not pdf_paths:
+            return {"error": "Failed to create PDFs"}, 500
+        
+        # Clean up temp images after all PDFs are created
+        try:
+            if os.path.exists("temp_images"):
+                shutil.rmtree("temp_images")
+                app.logger.debug("Cleaned up temp images directory")
+        except Exception as e:
+            app.logger.warning(f"Could not clean up temp images: {e}")
+        
+        # If only one book, send it directly
+        if len(pdf_paths) == 1:
+            return send_file(pdf_paths[0], as_attachment=True, download_name=os.path.basename(pdf_paths[0]))
+        
+        # If multiple books, create a zip file
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        zip_filename = f"books_{timestamp}.zip"
+        zip_filepath = os.path.join("downloads", zip_filename)
+        
+        with zipfile.ZipFile(zip_filepath, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            for pdf_path in pdf_paths:
+                zipf.write(pdf_path, os.path.basename(pdf_path))
+        
+        # Clean up individual PDFs after zipping
+        for pdf_path in pdf_paths:
+            try:
+                os.remove(pdf_path)
+            except Exception as e:
+                app.logger.warning(f"Could not remove {pdf_path}: {e}")
+        
+        return send_file(zip_filepath, as_attachment=True, download_name=os.path.basename(zip_filepath), mimetype='application/zip')
+        
+    elif selected_format == 'EPUB' or selected_format == 'epub':
         path = create_epub(processed_books)
-    elif selected_format == 'PDF' or selected_format == 'pdf':
-        print("Creating PDF...")
-        path = create_pdf(processed_books)
-
-    if not path:
-        return {"error": "Failed to create file"}, 500
-    return send_file(path, as_attachment=True, download_name=os.path.basename(path))
+        if not path:
+            return {"error": "Failed to create EPUB"}, 500
+        return send_file(path, as_attachment=True, download_name=os.path.basename(path))
+    
+    return {"error": "Unsupported format"}, 400
     
 
 @app.before_request
