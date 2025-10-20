@@ -610,7 +610,7 @@ def download():
         
         # If only one book, send it directly
         if len(pdf_paths) == 1:
-            return send_file(pdf_paths[0], as_attachment=True, download_name=os.path.basename(pdf_paths[0]))
+            return send_file(pdf_paths[0], as_attachment=True, download_name=os.path.basename(pdf_paths[0]), mimetype='application/pdf')
         
         # If multiple books, create a zip file
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -628,7 +628,7 @@ def download():
             except Exception as e:
                 app.logger.warning(f"Could not remove {pdf_path}: {e}")
         
-        return send_file(zip_filepath, as_attachment=True, download_name=os.path.basename(zip_filepath), mimetype='application/zip')
+        return send_file(zip_filepath, as_attachment=True, download_name=zip_filename, mimetype='application/zip')
         
     elif selected_format == 'EPUB' or selected_format == 'epub':
         path = create_epub(processed_books)
