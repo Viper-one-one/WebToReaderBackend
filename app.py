@@ -132,8 +132,39 @@ def get_book_names(url):
 def fetch_chapter(url):
     response = requests.get(url)
     soup = BeautifulSoup(response.content, 'html.parser')
-    content = soup.find('div', class_='entry-content alignfull wp-block-post-content has-global-padding is-layout-constrained wp-block-post-content-is-layout-constrained').get_text(separator='\n')
-    return content.strip()
+    content = soup.find('div', class_='entry-content alignfull wp-block-post-content has-global-padding is-layout-constrained wp-block-post-content-is-layout-constrained')
+    if content:
+        # Find wp-block-comments divs first
+        comments_divs = content.find_all('div', class_='wp-block-comments')
+        
+        for comments_div in comments_divs:
+            # Look for sibling p elements with has-text-align-center class near this comments div
+            # Check previous siblings
+            prev_sibling = comments_div.find_previous_sibling()
+            while prev_sibling and prev_sibling.name in ['p', 'div']:
+                if (prev_sibling.name == 'p' and 
+                    prev_sibling.get('class') and 
+                    'has-text-align-center' in prev_sibling.get('class')):
+                    prev_sibling.decompose()
+                    break
+                prev_sibling = prev_sibling.find_previous_sibling()
+            
+            # Check next siblings
+            next_sibling = comments_div.find_next_sibling()
+            while next_sibling and next_sibling.name in ['p', 'div']:
+                if (next_sibling.name == 'p' and 
+                    next_sibling.get('class') and 
+                    'has-text-align-center' in next_sibling.get('class')):
+                    next_sibling.decompose()
+                    break
+                next_sibling = next_sibling.find_next_sibling()
+            
+            # Remove the comments div itself
+            comments_div.decompose()
+    
+    if content:
+        return content.get_text(separator='\n', strip=True)
+    return None
 
 def fetch_illustrations(url):
     response = requests.get(url)
@@ -258,8 +289,8 @@ def create_pdf(books: dict):
     
     # Calculate available width (page width minus margins)
     page_width = A4[0] - 144  # 72 points margin on each side = 144 total
-    max_width = page_width * 0.8  # Use 80% of available width
-    max_height = 6 * inch  # Maximum height for images
+    max_width = page_width  # Use 100% of available width
+    max_height = A4[1] - 144  # Use 100% of available height
     
     # Process all volumes in a single PDF
     for volume, chapters in books.items():
