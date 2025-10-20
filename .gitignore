@@ -2,3 +2,5 @@ __pycache__/
 .venv/
 debug.json
 debug.log
+downloads/
+temp_images/
