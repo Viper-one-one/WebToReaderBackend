@@ -27,65 +27,66 @@ CORS(app, resources={
     r"/download": {"origins": "*", "methods": ["POST", "OPTIONS"]}
 })
 
-app.debug = True
-app.logger.setLevel(logging.DEBUG)
+# app.logger.setLevel(logging.DEBUG)
 
-handler = RotatingFileHandler("debug.log", maxBytes=0, backupCount=1)
-handler.setLevel(logging.DEBUG)
-handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+# log_dir = "app/logs" if os.path.exists("app/logs") else "."
 
-class LineCountHandler(logging.Handler):
-    def __init__(self, filename, max_lines=500):
-        super().__init__()
-        self.filename = filename
-        self.max_lines = max_lines
-        self.line_count = 0
+# handler = RotatingFileHandler(os.path.join(log_dir, "debug.log"), maxBytes=0, backupCount=1)
+# handler.setLevel(logging.DEBUG)
+# handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+
+# class LineCountHandler(logging.Handler):
+#     def __init__(self, filename, max_lines=500):
+#         super().__init__()
+#         self.filename = filename
+#         self.max_lines = max_lines
+#         self.line_count = 0
         
-    def emit(self, record):
-        try:
-            msg = self.format(record)
-            with open(self.filename, 'a') as f:
-                f.write(msg + '\n')
-            self.line_count += 1
+#     def emit(self, record):
+#         try:
+#             msg = self.format(record)
+#             with open(self.filename, 'a') as f:
+#                 f.write(msg + '\n')
+#             self.line_count += 1
             
-            if self.line_count >= self.max_lines:
-                self._trim_file()
-                self.line_count = 0
-        except Exception:
-            self.handleError(record)
+#             if self.line_count >= self.max_lines:
+#                 self._trim_file()
+#                 self.line_count = 0
+#         except Exception:
+#             self.handleError(record)
     
-    def _trim_file(self):
-        try:
-            with open(self.filename, 'r') as f:
-                lines = f.readlines()
-            with open(self.filename, 'w') as f:
-                f.writelines(lines[-self.max_lines:])
-        except Exception:
-            pass
+#     def _trim_file(self):
+#         try:
+#             with open(self.filename, 'r') as f:
+#                 lines = f.readlines()
+#             with open(self.filename, 'w') as f:
+#                 f.writelines(lines[-self.max_lines:])
+#         except Exception:
+#             pass
 
-line_handler = LineCountHandler("debug.log", max_lines=500)
-line_handler.setLevel(logging.DEBUG)
-line_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-app.logger.addHandler(line_handler)
+# line_handler = LineCountHandler("debug.log", max_lines=500)
+# line_handler.setLevel(logging.DEBUG)
+# line_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+# app.logger.addHandler(line_handler)
 
 # utility functions
 def validate_url(data):
-    app.logger.debug('Validating URL data: %s', data)
+    # app.logger.debug('Validating URL data: %s', data)
     if data is None:
-        app.logger.error("Request data is None")
+        # app.logger.error("Request data is None")
         return False
     if 'url' not in data:
-        app.logger.error("Missing 'url' in request data")
+        # app.logger.error("Missing 'url' in request data")
         return False
     url = data['url']
     if not isinstance(url, str) or not url.startswith(('http://', 'https://')):
-        app.logger.error("Invalid URL format (requires http:// or https://): %s", url)
+        # app.logger.error("Invalid URL format (requires http:// or https://): %s", url)
         return False
-    app.logger.debug('URL validation passed for: %s', url)
+    # app.logger.debug('URL validation passed for: %s', url)
     return True
 
 def get_webpage_content(url):
-    print(f"Fetching webpage content from URL: {url}")
+    # print(f"Fetching webpage content from URL: {url}")
     try:
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110',
@@ -97,8 +98,8 @@ def get_webpage_content(url):
         response = requests.get(url, headers=headers, timeout=60)
         response.raise_for_status()
         response.encoding = 'utf-8'
-        app.logger.debug(f"Response encoding: {response.encoding}")
-        app.logger.debug(f"Apparent encoding: {response.apparent_encoding}")
+        # app.logger.debug(f"Response encoding: {response.encoding}")
+        # app.logger.debug(f"Apparent encoding: {response.apparent_encoding}")
         soup = BeautifulSoup(response.content, 'html.parser', from_encoding='utf-8')
         books = {}
         for h3 in soup.find_all('h3'):
@@ -110,10 +111,10 @@ def get_webpage_content(url):
                     if inner_div:
                         chapter_links = [a['href'] for p in inner_div.find_all('p') for a in p.find_all('a', href=True)]
                         books[volume_title] = chapter_links
-        #print(f"All books found: {books}")
+        # print(f"All books found: {books}")
         return books
     except requests.RequestException as e:
-        app.logger.error(f"Error fetching URL: {e}")
+        # app.logger.error(f"Error fetching URL: {e}")
         return None
     
 def get_book_names(url):
@@ -128,7 +129,7 @@ def get_book_names(url):
                 book_titles[volume_title] = True
         return list(book_titles.keys())
     except requests.RequestException as e:
-        app.logger.error(f"Error fetching URL: {e}")
+        # app.logger.error(f"Error fetching URL: {e}")
         return None
     
 def fetch_chapter(url):
@@ -201,20 +202,20 @@ def download_image(img_url, save_dir, filename):
         urlretrieve(img_url, filepath)
         return filepath
     except Exception as e:
-        app.logger.error(f"Error downloading image {img_url}: {e}")
+        # app.logger.error(f"Error downloading image {img_url}: {e}")
         return None
 
 def process_chapters(books):
     processed_books = {}
     for volume, links in books.items():
-        print(f"Processing {volume} with {len(links)} chapters")
+        # print(f"Processing {volume} with {len(links)} chapters")
         chapters = []
         
         for i, link in enumerate(links, start=1):
             try:
                 # Check if this is the illustrations chapter
                 if '/illustrations/' in link or link.endswith('-illustrations/'):
-                    print(f"Fetching illustrations from chapter {i}: {link}")
+                    # print(f"Fetching illustrations from chapter {i}: {link}")
                     illustrations = fetch_illustrations(link)
                     chapters.append({
                         'chapter_num': i,
@@ -223,7 +224,7 @@ def process_chapters(books):
                         'images': illustrations
                     })
                 else:
-                    print(f"Fetching chapter {i}: {link}")
+                    # print(f"Fetching chapter {i}: {link}")
                     content = fetch_chapter(link)
                     chapters.append({
                         'chapter_num': i,
@@ -232,7 +233,7 @@ def process_chapters(books):
                         'content': content
                     })
             except Exception as e:
-                app.logger.error(f"Error processing chapter {i} ({link}): {e}")
+                # app.logger.error(f"Error processing chapter {i} ({link}): {e}")
                 continue
 
             processed_books[volume] = chapters
@@ -252,7 +253,7 @@ def create_epub(books):
 
 def create_single_pdf(volume_name: str, chapters: list):
     """Create a PDF for a single volume."""
-    print(f"Creating PDF for volume: {volume_name}")
+    # print(f"Creating PDF for volume: {volume_name}")
     
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     # Create filename based on volume name
@@ -296,7 +297,7 @@ def create_single_pdf(volume_name: str, chapters: list):
     max_height = A4[1] - 144  # Use 100% of available height
     
     # Add volume title
-    print(f"Adding {volume_name} to PDF")
+    # print(f"Adding {volume_name} to PDF")
     content.append(Paragraph(volume_name, title_style))
     content.append(Spacer(1, 12))
 
@@ -336,7 +337,7 @@ def create_single_pdf(volume_name: str, chapters: list):
                         img_width_points = min(img_width, max_width)
                         img_height_points = min(img_height, max_height)
                         
-                        app.logger.debug(f"Original image size: {orig_width}x{orig_height}, PDF size: {img_width_points}x{img_height_points}")
+                        # app.logger.debug(f"Original image size: {orig_width}x{orig_height}, PDF size: {img_width_points}x{img_height_points}")
                         
                         img = Image(img_path, width=img_width_points, height=img_height_points)
                         content.append(img)
@@ -346,21 +347,21 @@ def create_single_pdf(volume_name: str, chapters: list):
                         content.append(Spacer(1, 12))
                         
                     except Exception as e:
-                        app.logger.error(f"Error processing image {img_path}: {e}")
+                        # app.logger.error(f"Error processing image {img_path}: {e}")
                         content.append(Paragraph(f"[Image could not be loaded: {img_info.get('alt', 'No description')}]", body_style))
                         content.append(Spacer(1, 12))
             content.append(PageBreak())
     
     try:
         doc.build(content)
-        app.logger.info(f"Created PDF: {filepath}")
+        # app.logger.info(f"Created PDF: {filepath}")
         return filepath
     except Exception as e:
-        app.logger.error(f"Error creating PDF for {volume_name}: {e}")
+        # app.logger.error(f"Error creating PDF for {volume_name}: {e}")
         return None
 
 def create_pdf(books: dict):
-    print(f"Creating PDF for books: {list(books.keys())}")
+    # print(f"Creating PDF for books: {list(books.keys())}")
     
     # Create a single PDF with all selected volumes
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -406,7 +407,7 @@ def create_pdf(books: dict):
     
     # Process all volumes in a single PDF
     for volume, chapters in books.items():
-        print(f"Adding {volume} to PDF")
+        # print(f"Adding {volume} to PDF")
         content.append(Paragraph(volume, title_style))
         content.append(Spacer(1, 12))
 
@@ -455,7 +456,7 @@ def create_pdf(books: dict):
                             img_height_points = min(img_height, max_height)
                             
 
-                            app.logger.debug(f"Original image size: {orig_width}x{orig_height}, PDF size: {img_width_points}x{img_height_points}")
+                            # app.logger.debug(f"Original image size: {orig_width}x{orig_height}, PDF size: {img_width_points}x{img_height_points}")
                             
 
                             # Create image with preserved aspect ratio
@@ -467,7 +468,7 @@ def create_pdf(books: dict):
                             content.append(Spacer(1, 12))
                             
                         except Exception as e:
-                            app.logger.error(f"Error processing image {img_path}: {e}")
+                            # app.logger.error(f"Error processing image {img_path}: {e}")
                             # Fallback: add a placeholder or skip the image
                             content.append(Paragraph(f"[Image could not be loaded: {img_info.get('alt', 'No description')}]", body_style))
                             content.append(Spacer(1, 12))
@@ -475,20 +476,21 @@ def create_pdf(books: dict):
     
     try:
         doc.build(content)
-        app.logger.info(f"Created PDF: {filepath}")
+        # app.logger.info(f"Created PDF: {filepath}")
         
         # Clean up temp images
         try:
             import shutil
             if os.path.exists("temp_images"):
                 shutil.rmtree("temp_images")
-                app.logger.debug("Cleaned up temp images directory")
+                # app.logger.debug("Cleaned up temp images directory")
         except Exception as e:
-            app.logger.warning(f"Could not clean up temp images: {e}")
+            # app.logger.warning(f"Could not clean up temp images: {e}")
+            pass
         
         return filepath
     except Exception as e:
-        app.logger.error(f"Error creating PDF: {e}")
+        # app.logger.error(f"Error creating PDF: {e}")
         return None
 def cleanup_directories():
     """Clean up downloads and temp_images directories after sending files"""
@@ -496,25 +498,27 @@ def cleanup_directories():
     try:
         if os.path.exists("downloads"):
             shutil.rmtree("downloads")
-            app.logger.debug("Cleaned up downloads directory")
+            # app.logger.debug("Cleaned up downloads directory")
     except Exception as e:
-        app.logger.warning(f"Could not clean up downloads directory: {e}")
+        # app.logger.warning(f"Could not clean up downloads directory: {e}")
+        pass
     
     try:
         if os.path.exists("temp_images"):
             shutil.rmtree("temp_images")
-            app.logger.debug("Cleaned up temp_images directory")
+            # app.logger.debug("Cleaned up temp_images directory")
     except Exception as e:
-        app.logger.warning(f"Could not clean up temp_images directory: {e}")
+        # app.logger.warning(f"Could not clean up temp_images directory: {e}")
+        pass
     
 
 # Flask routes and request handlers
 @app.route('/process', methods=['POST', 'OPTIONS'])
 def process():
-    app.logger.debug('Received /process request - Method: %s', request.method)
+    # app.logger.debug('Received /process request - Method: %s', request.method)
     
     if request.method == 'OPTIONS':
-        app.logger.debug('Handling OPTIONS request')
+        # app.logger.debug('Handling OPTIONS request')
         response = app.make_default_options_response()
         headers = response.headers
         headers['Access-Control-Allow-Origin'] = '*'
@@ -522,28 +526,28 @@ def process():
         headers['Access-Control-Allow-Headers'] = 'Content-Type, Accept'
         return response
     
-    app.logger.debug('Request JSON: %s', request.json)
+    # app.logger.debug('Request JSON: %s', request.json)
     if validate_url(request.json):
         url = request.json['url']
-        app.logger.debug('Processing URL: %s', url)
+        # app.logger.debug('Processing URL: %s', url)
         books = get_book_names(url)
         
         if books is None:
-            app.logger.error('Failed to get webpage content')
+            # app.logger.error('Failed to get webpage content')
             return {"error": "Failed to fetch or parse the webpage"}, 500
 
         volumes = [{"id": i, "title": volume} for i, volume in enumerate(books, start=1)]
-        app.logger.debug('Found %d volumes: %s', len(volumes), [v['title'] for v in volumes])
+        # app.logger.debug('Found %d volumes: %s', len(volumes), [v['title'] for v in volumes])
         return {"books": volumes}, 200
     else:
-        app.logger.error('URL validation failed')
+        # app.logger.error('URL validation failed')
         return {"error": "Invalid url"}, 400
 
 @app.route('/download', methods=['POST', 'OPTIONS'])
 def download():
-    app.logger.debug('Received /download request - Method: %s', request.method)
+    # app.logger.debug('Received /download request - Method: %s', request.method)
     if request.method == 'OPTIONS':
-        app.logger.debug('Handling OPTIONS request for /download')
+        # app.logger.debug('Handling OPTIONS request for /download')
         response = app.make_default_options_response()
         headers = response.headers
         headers['Access-Control-Allow-Origin'] = '*'
@@ -551,15 +555,15 @@ def download():
         headers['Access-Control-Allow-Headers'] = 'Content-Type, Accept'
         return response
 
-    app.logger.debug('Request JSON: %s', request.json)
-    print(f"Request JSON: {request.json}")
+    # app.logger.debug('Request JSON: %s', request.json)
+    # print(f"Request JSON: {request.json}")
 
     selected_books = request.json.get('selectedBooks')
     selected_format = request.json.get('format')
     url = request.json.get('url')
-    print(f"URL for download: {url}")
-    print(f"Selected books for download: {selected_books}")
-    print(f"Selected format for download: {selected_format}")
+    # print(f"URL for download: {url}")
+    # print(f"Selected books for download: {selected_books}")
+    # print(f"Selected format for download: {selected_format}")
 
     if not selected_books:
         return {"error": "No books selected"}, 400
@@ -570,9 +574,9 @@ def download():
 
     books = get_webpage_content(url)
     if books is None:
-        app.logger.error('Failed to get webpage content for download')
+        # app.logger.error('Failed to get webpage content for download')
         return {"error": "Failed to fetch or parse the webpage"}, 500
-    #print(f"All books fetched: {books}")
+    # print(f"All books fetched: {books}")
     # selected_books = ['1'] books = {'Volume 1': [...], 'Volume 2': [...]}
     selected_books = [str(i) for i in selected_books]
     filtered_books = {}
@@ -582,16 +586,16 @@ def download():
             volume_num = match.group(1)
             if volume_num in selected_books:
                 filtered_books[volume_key] = chapters
-    #print(f"Filtered books for processing: {filtered_books}")
+    # print(f"Filtered books for processing: {filtered_books}")
     processed_books = process_chapters(filtered_books)
-    #print(f"Processed books for download: {processed_books}.")
+    # print(f"Processed books for download: {processed_books}.")
     if not processed_books:
         return {"error": "No valid books to process"}, 400
     
     # Create separate PDFs for each book
     pdf_paths = []
     if selected_format == 'PDF' or selected_format == 'pdf':
-        print("Creating separate PDFs for each book...")
+        # print("Creating separate PDFs for each book...")
         for volume_name, chapters in processed_books.items():
             pdf_path = create_single_pdf(volume_name, chapters)
             if pdf_path:
@@ -604,9 +608,10 @@ def download():
         try:
             if os.path.exists("temp_images"):
                 shutil.rmtree("temp_images")
-                app.logger.debug("Cleaned up temp images directory")
+                # app.logger.debug("Cleaned up temp images directory")
         except Exception as e:
-            app.logger.warning(f"Could not clean up temp images: {e}")
+            # app.logger.warning(f"Could not clean up temp images: {e}")
+            pass
         
         # If only one book, send it directly
         if len(pdf_paths) == 1:
@@ -626,7 +631,8 @@ def download():
             try:
                 os.remove(pdf_path)
             except Exception as e:
-                app.logger.warning(f"Could not remove {pdf_path}: {e}")
+                # app.logger.warning(f"Could not remove {pdf_path}: {e}")
+                pass
         
         return send_file(zip_filepath, as_attachment=True, download_name=zip_filename, mimetype='application/zip')
         
@@ -641,31 +647,32 @@ def download():
 
 @app.before_request
 def log_request_info():
-    app.logger.debug('Headers: %s', request.headers)
-    app.logger.debug('Body: %s', request.get_data())
-    app.logger.debug('Request method: %s', request.method)
+    # app.logger.debug('Headers: %s', request.headers)
+    # app.logger.debug('Body: %s', request.get_data())
+    # app.logger.debug('Request method: %s', request.method)
     
     # Only try to access JSON for POST requests with JSON content type
     if request.method == 'POST' and request.content_type == 'application/json':
         try:
             data = request.json
-            print(f"Request data: {data}")
+            # print(f"Request data: {data}")
+            pass
         except Exception as e:
-            app.logger.debug('Could not parse JSON: %s', e)
+            # app.logger.debug('Could not parse JSON: %s', e)
+            pass
     else:
-        app.logger.debug('Skipping JSON parsing for %s request', request.method)
+        # app.logger.debug('Skipping JSON parsing for %s request', request.method)
+        pass
 
 @app.after_request
 def log_response_info(response):
-    app.logger.debug('Response status: %s', response.status)
-    app.logger.debug('Response headers: %s', response.headers)
+    # app.logger.debug('Response status: %s', response.status)
+    # app.logger.debug('Response headers: %s', response.headers)
     try:
         response_data = response.get_data(as_text=True)
-        app.logger.debug('Response body: %s', response_data)
-        print(f"Response body: {response_data}")
+        # app.logger.debug('Response body: %s', response_data)
+        # print(f"Response body: {response_data}")
     except Exception as e:
-        app.logger.debug('Could not log response body: %s', e)
+        # app.logger.debug('Could not log response body: %s', e)
+        pass
     return response
-
-if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)

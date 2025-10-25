@@ -4,3 +4,7 @@ debug.json
 debug.log
 downloads/
 temp_images/
+__pycache__/
+*.pyc[cod]
+*$py.class
+.env
