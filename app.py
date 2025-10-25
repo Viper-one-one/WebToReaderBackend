@@ -492,6 +492,7 @@ def create_pdf(books: dict):
     except Exception as e:
         # app.logger.error(f"Error creating PDF: {e}")
         return None
+    
 def cleanup_directories():
     """Clean up downloads and temp_images directories after sending files"""
     import shutil

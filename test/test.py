@@ -1,12 +1,9 @@
 import pytest
 import json
 from unittest.mock import patch, MagicMock
-import os
-import sys
-sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from app import  validate_url, get_book_names, get_webpage_content
 
-class TestValidation:
+class TestURLValidation:
     """Test URL validation functions."""
     
     def test_validate_url_valid(self):
