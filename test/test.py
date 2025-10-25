@@ -1,7 +1,10 @@
 import pytest
 import json
 from unittest.mock import patch, MagicMock
-from app import app, validate_url, get_book_names, get_webpage_content
+import os
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+from app import  validate_url, get_book_names, get_webpage_content
 
 class TestValidation:
     """Test URL validation functions."""
@@ -19,6 +22,16 @@ class TestValidation:
     def test_validate_url_missing_url_key(self):
         """Test validation with missing url key."""
         data = {"format": "pdf"}
+        assert validate_url(data) == False
+
+    def test_validate_url_empty_url(self):
+        """Test validation with empty URL."""
+        data = {"url": ""}
+        assert validate_url(data) == False
+
+    def test_validate_url_malformed_url(self):
+        """Test validation with malformed URL."""
+        data = {"url": "htp:/example"}
         assert validate_url(data) == False
     
     def test_validate_url_none_data(self):

@@ -1,18 +1,20 @@
 import pytest
 import sys
-import os
+from pathlib import Path
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+# Add parent directory to path
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from app import app
+from app import app as flask_app
+
+@pytest.fixture
+def app():
+    flask_app.config['TESTING'] = True
+    return flask_app
 
 @pytest.fixture
 def client():
-    app.config['TESTING'] = True
-    app.config['WTF_CSRF_ENABLED'] = False
-    with app.test_client() as client:
-        with app.app_context():
-            yield client
+    return flask_app.test_client()
 
 @pytest.fixture
 def sample_books_data():
