@@ -446,8 +446,16 @@ def create_single_pdf(volume_name: str, chapters: list):
             content.append(PageBreak())
         elif chapter['type'] == 'illustrations':
             content.append(Paragraph("Illustrations", chapter_style))
+            
+            # Calculate space available for first image (accounting for title and spacing)
+            # Title takes approximately: fontSize (18) + spaceAfter (12) + some padding = ~40 points
+            first_img_max_height = max_height - 84
+            
             for img_info in chapter['images']:
-                img_path = download_image(img_info['src'], "temp_images", f"{safe_volume_name}_illustrations_{chapter['images'].index(img_info)+1}")
+                img_index = chapter['images'].index(img_info)
+                is_first_image = (img_index == 0)
+                
+                img_path = download_image(img_info['src'], "temp_images", f"{safe_volume_name}_illustrations_{img_index+1}")
                 if img_path and os.path.exists(img_path):
                     try:
                         # Get original image dimensions
@@ -455,22 +463,25 @@ def create_single_pdf(volume_name: str, chapters: list):
                             orig_width, orig_height = pil_img.size
                             aspect_ratio = orig_width / orig_height
                         
+                        # Use reduced height for first image to fit on first page
+                        img_max_height = first_img_max_height if is_first_image else max_height
+                        
                         # Calculate dimensions while preserving aspect ratio
                         if orig_width > orig_height:
                             img_width = min(max_width, orig_width)
                             img_height = img_width / aspect_ratio
-                            if img_height > max_height:
-                                img_height = max_height
+                            if img_height > img_max_height:
+                                img_height = img_max_height
                                 img_width = img_height * aspect_ratio
                         else:
-                            img_height = min(max_height, orig_height)
+                            img_height = min(img_max_height, orig_height)
                             img_width = img_height * aspect_ratio
                             if img_width > max_width:
                                 img_width = max_width
                                 img_height = img_width / aspect_ratio
                         
                         img_width_points = min(img_width, max_width)
-                        img_height_points = min(img_height, max_height)
+                        img_height_points = min(img_height, img_max_height)
                         
                         # app.logger.debug(f"Original image size: {orig_width}x{orig_height}, PDF size: {img_width_points}x{img_height_points}")
                         
@@ -640,15 +651,26 @@ def create_pdf(books: dict):
                 content.append(PageBreak())
             elif chapter['type'] == 'illustrations':
                 content.append(Paragraph("Illustrations", chapter_style))
+                
+                # Calculate space available for first image (accounting for title and spacing)
+                # Title takes approximately: fontSize (18) + spaceAfter (12) + some padding = ~40 points
+                first_img_max_height = max_height - 84
+                
                 for img_info in chapter['images']:
+                    img_index = chapter['images'].index(img_info)
+                    is_first_image = (img_index == 0)
+                    
                     safe_volume_name = volume.replace(' ', '_').replace('Volume_', 'Vol')
-                    img_path = download_image(img_info['src'], "temp_images", f"{safe_volume_name}_illustrations_{chapter['images'].index(img_info)+1}")
+                    img_path = download_image(img_info['src'], "temp_images", f"{safe_volume_name}_illustrations_{img_index+1}")
                     if img_path and os.path.exists(img_path):
                         try:
                             # Get original image dimensions
                             with PILImage.open(img_path) as pil_img:
                                 orig_width, orig_height = pil_img.size
                                 aspect_ratio = orig_width / orig_height
+                            
+                            # Use reduced height for first image to fit on first page
+                            img_max_height = first_img_max_height if is_first_image else max_height
                             
                             # Calculate dimensions while preserving aspect ratio
                             if orig_width > orig_height:
@@ -657,12 +679,12 @@ def create_pdf(books: dict):
                                 img_height = img_width / aspect_ratio
                                 
                                 # If height is still too big, limit by height
-                                if img_height > max_height:
-                                    img_height = max_height
+                                if img_height > img_max_height:
+                                    img_height = img_max_height
                                     img_width = img_height * aspect_ratio
                             else:
                                 # Portrait image - limit by height
-                                img_height = min(max_height, orig_height)
+                                img_height = min(img_max_height, orig_height)
                                 img_width = img_height * aspect_ratio
                                 
                                 # If width is still too big, limit by width
@@ -673,7 +695,7 @@ def create_pdf(books: dict):
 
                             # Convert pixels to points (assuming 72 DPI)
                             img_width_points = min(img_width, max_width)
-                            img_height_points = min(img_height, max_height)
+                            img_height_points = min(img_height, img_max_height)
                             
 
                             # app.logger.debug(f"Original image size: {orig_width}x{orig_height}, PDF size: {img_width_points}x{img_height_points}")
