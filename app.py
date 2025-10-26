@@ -53,8 +53,16 @@ def get_webpage_content(url):
                 if container:
                     inner_div = container.find('div')
                     if inner_div:
-                        chapter_links = [a['href'] for p in inner_div.find_all('p') for a in p.find_all('a', href=True)]
-                        books[volume_title] = chapter_links
+                        chapter_data = []
+                        for p in inner_div.find_all('p'):
+                            for a in p.find_all('a', href=True):
+                                chapter_name = a.get_text(strip=True)
+                                chapter_url = a['href']
+                                chapter_data.append({
+                                    'name': chapter_name,
+                                    'url': chapter_url
+                                })
+                        books[volume_title] = chapter_data
         return books
     except requests.RequestException as e:
         return None
@@ -74,6 +82,7 @@ def get_book_names(url):
         return None
     
 def fetch_chapter(url):
+    print(f"Fetching chapter from URL: {url}")
     response = requests.get(url)
     soup = BeautifulSoup(response.content, 'html.parser')
     content = soup.find('div', class_='entry-content alignfull wp-block-post-content has-global-padding is-layout-constrained wp-block-post-content-is-layout-constrained')
@@ -191,15 +200,19 @@ def download_image(img_url, save_dir, filename):
 
 def process_chapters(books):
     processed_books = {}
-    for volume, links in books.items():
+    for volume, chapter_list in books.items():
         chapters = []
         text_chapter_num = 0
-        for i, link in enumerate(links, start=1):
+        for i, chapter_data in enumerate(chapter_list, start=1):
             try:
+                link = chapter_data['url']
+                name = chapter_data['name']
+                
                 if '/illustrations/' in link or link.endswith('-illustrations/'):
                     illustrations = fetch_illustrations(link)
                     chapters.append({
                         'chapter_num': None,
+                        'chapter_name': name,
                         'url': link,
                         'type': 'illustrations',
                         'images': illustrations
@@ -209,6 +222,7 @@ def process_chapters(books):
                     content = fetch_chapter(link)
                     chapters.append({
                         'chapter_num': text_chapter_num,
+                        'chapter_name': name,
                         'url': link,
                         'type': 'text',
                         'content': content
@@ -268,7 +282,8 @@ def create_single_pdf(volume_name: str, chapters: list):
 
     for chapter in chapters:
         if chapter['type'] == 'text':
-            content.append(Paragraph(f"Chapter {chapter['chapter_num']}", chapter_style))
+            chapter_title = chapter.get('chapter_name', f"Chapter {chapter['chapter_num']}")
+            content.append(Paragraph(chapter_title, chapter_style))
             
             chapter_content = chapter['content']
             
@@ -366,7 +381,8 @@ def create_single_pdf(volume_name: str, chapters: list):
             
             content.append(PageBreak())
         elif chapter['type'] == 'illustrations':
-            content.append(Paragraph("Illustrations", chapter_style))
+            illustrations_title = chapter.get('chapter_name', 'Illustrations')
+            content.append(Paragraph(illustrations_title, chapter_style))
             
             first_img_max_height = max_height - 84
             
@@ -464,7 +480,8 @@ def create_pdf(books: dict):
 
         for chapter in chapters:
             if chapter['type'] == 'text':
-                content.append(Paragraph(f"Chapter {chapter['chapter_num']}", chapter_style))
+                chapter_title = chapter.get('chapter_name', f"Chapter {chapter['chapter_num']}")
+                content.append(Paragraph(chapter_title, chapter_style))
                 
                 chapter_content = chapter['content']
                 
@@ -563,7 +580,8 @@ def create_pdf(books: dict):
                 
                 content.append(PageBreak())
             elif chapter['type'] == 'illustrations':
-                content.append(Paragraph("Illustrations", chapter_style))
+                illustrations_title = chapter.get('chapter_name', 'Illustrations')
+                content.append(Paragraph(illustrations_title, chapter_style))
                 
                 first_img_max_height = max_height - 84
                 
