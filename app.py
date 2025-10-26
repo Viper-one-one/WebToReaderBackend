@@ -191,7 +191,14 @@ def fetch_chapter(url):
                         rows = table_elem.find_all('tr')
                         for row in rows:
                             cells = row.find_all(['td', 'th'])
-                            row_data = [cell.get_text(strip=True) for cell in cells]
+                            row_data = []
+                            for cell in cells:
+                                # Preserve line breaks by replacing <br> tags with newlines
+                                for br in cell.find_all('br'):
+                                    br.replace_with('\n')
+                                # Get text while preserving the newlines
+                                cell_text = cell.get_text()
+                                row_data.append(cell_text)
                             if row_data:
                                 table_data.append(row_data)
                         if table_data:
@@ -422,21 +429,43 @@ def create_single_pdf(volume_name: str, chapters: list):
                 if 'tables' in chapter_content and chapter_content['tables']:
                     for table_data in chapter_content['tables']:
                         if table_data:  # Make sure table has rows
-                            # Create ReportLab Table
-                            table = Table(table_data, colWidths=[page_width / len(table_data[0])] * len(table_data[0]))
+                            # Wrap table cell text in Paragraphs for proper text wrapping
+                            wrapped_table_data = []
+                            cell_style = ParagraphStyle(
+                                name='TableCellStyle',
+                                parent=body_style,
+                                fontSize=9,
+                                leading=11,
+                                alignment=TA_JUSTIFY
+                            )
+                            
+                            for row in table_data:
+                                wrapped_row = []
+                                for cell in row:
+                                    # Replace newlines with <br/> tags for Paragraph rendering
+                                    cell_html = str(cell).replace('\n', '<br/>')
+                                    # Wrap each cell's text in a Paragraph for automatic text wrapping
+                                    wrapped_row.append(Paragraph(cell_html, cell_style))
+                                wrapped_table_data.append(wrapped_row)
+                            
+                            # Calculate column widths - distribute evenly across page width
+                            num_cols = len(table_data[0])
+                            col_width = page_width / num_cols
+                            
+                            # Create ReportLab Table with wrapped content
+                            table = Table(wrapped_table_data, colWidths=[col_width] * num_cols)
                             
                             # Apply table styling
                             table.setStyle(TableStyle([
-                                ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-                                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                                ('BACKGROUND', (0, 0), (-1, 0), colors.whitesmoke),
+                                ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+                                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
                                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
                                 ('FONTSIZE', (0, 0), (-1, 0), 10),
                                 ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                                ('TOPPADDING', (0, 0), (-1, -1), 6),
                                 ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
                                 ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-                                ('FONTSIZE', (0, 1), (-1, -1), 9),
                                 ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
                             ]))
                             
@@ -627,21 +656,43 @@ def create_pdf(books: dict):
                     if 'tables' in chapter_content and chapter_content['tables']:
                         for table_data in chapter_content['tables']:
                             if table_data:  # Make sure table has rows
-                                # Create ReportLab Table
-                                table = Table(table_data, colWidths=[page_width / len(table_data[0])] * len(table_data[0]))
+                                # Wrap table cell text in Paragraphs for proper text wrapping
+                                wrapped_table_data = []
+                                cell_style = ParagraphStyle(
+                                    name='TableCellStyle',
+                                    parent=body_style,
+                                    fontSize=9,
+                                    leading=11,
+                                    alignment=TA_JUSTIFY
+                                )
+                                
+                                for row in table_data:
+                                    wrapped_row = []
+                                    for cell in row:
+                                        # Replace newlines with <br/> tags for Paragraph rendering
+                                        cell_html = str(cell).replace('\n', '<br/>')
+                                        # Wrap each cell's text in a Paragraph for automatic text wrapping
+                                        wrapped_row.append(Paragraph(cell_html, cell_style))
+                                    wrapped_table_data.append(wrapped_row)
+                                
+                                # Calculate column widths - distribute evenly across page width
+                                num_cols = len(table_data[0])
+                                col_width = page_width / num_cols
+                                
+                                # Create ReportLab Table with wrapped content
+                                table = Table(wrapped_table_data, colWidths=[col_width] * num_cols)
                                 
                                 # Apply table styling
                                 table.setStyle(TableStyle([
-                                    ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-                                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                                    ('BACKGROUND', (0, 0), (-1, 0), colors.whitesmoke),
+                                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+                                    ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
                                     ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
                                     ('FONTSIZE', (0, 0), (-1, 0), 10),
                                     ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                                    ('TOPPADDING', (0, 0), (-1, -1), 6),
                                     ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
                                     ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                                    ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-                                    ('FONTSIZE', (0, 1), (-1, -1), 9),
                                     ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
                                 ]))
                                 
