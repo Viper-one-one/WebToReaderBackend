@@ -261,6 +261,7 @@ def process_chapters(books):
     for volume, links in books.items():
         # print(f"Processing {volume} with {len(links)} chapters")
         chapters = []
+        text_chapter_num = 0  # Separate counter for text chapters only
         for i, link in enumerate(links, start=1):
             try:
                 # Check if this is the illustrations chapter
@@ -268,16 +269,17 @@ def process_chapters(books):
                     # print(f"Fetching illustrations from chapter {i}: {link}")
                     illustrations = fetch_illustrations(link)
                     chapters.append({
-                        'chapter_num': i,
+                        'chapter_num': None,  # Illustrations don't get a number
                         'url': link,
                         'type': 'illustrations',
                         'images': illustrations
                     })
                 else:
                     # print(f"Fetching chapter {i}: {link}")
+                    text_chapter_num += 1  # Increment only for text chapters
                     content = fetch_chapter(link)
                     chapters.append({
-                        'chapter_num': i,
+                        'chapter_num': text_chapter_num,
                         'url': link,
                         'type': 'text',
                         'content': content
@@ -343,10 +345,10 @@ def create_single_pdf(volume_name: str, chapters: list):
     content = []
     
     # Calculate available width (page width minus margins)
-    page_width = A4[0] - 144  # 72 points margin on each side = 144 total
+    page_width = A4[0] - 108  # 54 points margin on each side = 108 total
     max_width = page_width  # Use 100% of available width
-    max_height = A4[1] - 144  # Use 100% of available height
-    
+    max_height = A4[1] - 108  # Use 100% of available height
+
     # Add volume title
     # print(f"Adding {volume_name} to PDF")
     content.append(Paragraph(volume_name, title_style))
@@ -443,9 +445,9 @@ def create_single_pdf(volume_name: str, chapters: list):
             
             content.append(PageBreak())
         elif chapter['type'] == 'illustrations':
-            content.append(Paragraph(f"Illustrations - Chapter {chapter['chapter_num']}", chapter_style))
+            content.append(Paragraph("Illustrations", chapter_style))
             for img_info in chapter['images']:
-                img_path = download_image(img_info['src'], "temp_images", f"{safe_volume_name}_chapter{chapter['chapter_num']}_{chapter['images'].index(img_info)+1}")
+                img_path = download_image(img_info['src'], "temp_images", f"{safe_volume_name}_illustrations_{chapter['images'].index(img_info)+1}")
                 if img_path and os.path.exists(img_path):
                     try:
                         # Get original image dimensions
@@ -535,10 +537,10 @@ def create_pdf(books: dict):
     content = []
     
     # Calculate available width (page width minus margins)
-    page_width = A4[0] - 144  # 72 points margin on each side = 144 total
+    page_width = A4[0] - 108  # 54 points margin on each side = 108 total
     max_width = page_width  # Use 100% of available width
-    max_height = A4[1] - 144  # Use 100% of available height
-    
+    max_height = A4[1] - 108  # Use 100% of available height
+
     # Process all volumes in a single PDF
     for volume, chapters in books.items():
         # print(f"Adding {volume} to PDF")
@@ -637,9 +639,10 @@ def create_pdf(books: dict):
                 
                 content.append(PageBreak())
             elif chapter['type'] == 'illustrations':
-                content.append(Paragraph(f"Illustrations - Chapter {chapter['chapter_num']}", chapter_style))
+                content.append(Paragraph("Illustrations", chapter_style))
                 for img_info in chapter['images']:
-                    img_path = download_image(img_info['src'], "temp_images", f"{volume}_chapter{chapter['chapter_num']}_{chapter['images'].index(img_info)+1}")
+                    safe_volume_name = volume.replace(' ', '_').replace('Volume_', 'Vol')
+                    img_path = download_image(img_info['src'], "temp_images", f"{safe_volume_name}_illustrations_{chapter['images'].index(img_info)+1}")
                     if img_path and os.path.exists(img_path):
                         try:
                             # Get original image dimensions
