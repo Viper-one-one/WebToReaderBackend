@@ -91,7 +91,7 @@ class TestDownloadEndpoint:
                              json={
                                  "selectedBooks": ["Volume 1"],
                                  "format": "pdf",
-                                 "url": "https://example.com"
+                                 "url": "http://127.0.0.1:"
                              },
                              content_type='application/json')
         

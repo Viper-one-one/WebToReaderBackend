@@ -9,10 +9,11 @@ import urllib.parse
 from urllib.request import urlretrieve
 from logging.handlers import RotatingFileHandler
 from reportlab.lib.pagesizes import letter, A4
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Image
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Image, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.lib.enums import TA_JUSTIFY, TA_CENTER
+from reportlab.lib import colors
 import io
 from datetime import datetime
 from PIL import Image as PILImage
@@ -165,8 +166,58 @@ def fetch_chapter(url):
             # Remove the comments div itself
             comments_div.decompose()
     
+    # Extract structured content
+    structured_content = {
+        'paragraphs': [],
+        'inline_images': [],
+        'tables': []
+    }
+    
     if content:
-        return content.get_text(separator='\n', strip=True)
+        # Process all children to preserve order and extract different content types
+        for element in content.children:
+            if element.name == 'p':
+                # Regular paragraph
+                text = element.get_text(strip=True)
+                if text:
+                    structured_content['paragraphs'].append(text)
+            
+            elif element.name == 'figure':
+                # Check if it's a table
+                if element.get('class') and 'wp-block-table' in element.get('class'):
+                    table_elem = element.find('table')
+                    if table_elem:
+                        table_data = []
+                        rows = table_elem.find_all('tr')
+                        for row in rows:
+                            cells = row.find_all(['td', 'th'])
+                            row_data = [cell.get_text(strip=True) for cell in cells]
+                            if row_data:
+                                table_data.append(row_data)
+                        if table_data:
+                            structured_content['tables'].append(table_data)
+                
+                # Check if it's an inline image (not illustration chapter)
+                elif element.get('class') and 'wp-block-image' in element.get('class'):
+                    img = element.find('img')
+                    if img and img.get('src'):
+                        figcaption = element.find('figcaption')
+                        structured_content['inline_images'].append({
+                            'src': img['src'],
+                            'alt': img.get('alt', ''),
+                            'caption': figcaption.get_text(strip=True) if figcaption else ''
+                        })
+            
+            elif element.name == 'img':
+                # Standalone image without figure wrapper
+                if element.get('src'):
+                    structured_content['inline_images'].append({
+                        'src': element['src'],
+                        'alt': element.get('alt', ''),
+                        'caption': ''
+                    })
+        
+        return structured_content
     return None
 
 def fetch_illustrations(url):
@@ -210,7 +261,6 @@ def process_chapters(books):
     for volume, links in books.items():
         # print(f"Processing {volume} with {len(links)} chapters")
         chapters = []
-        
         for i, link in enumerate(links, start=1):
             try:
                 # Check if this is the illustrations chapter
@@ -304,10 +354,92 @@ def create_single_pdf(volume_name: str, chapters: list):
     for chapter in chapters:
         if chapter['type'] == 'text':
             content.append(Paragraph(f"Chapter {chapter['chapter_num']}", chapter_style))
-            for para in chapter['content'].split('\n'):
-                if para.strip():
-                    content.append(Paragraph(para.strip(), body_style))
-                    content.append(Spacer(1, 12))
+            
+            # Handle structured content with paragraphs, inline images, and tables
+            chapter_content = chapter['content']
+            
+            if chapter_content:
+                # Process paragraphs
+                if 'paragraphs' in chapter_content and chapter_content['paragraphs']:
+                    for para in chapter_content['paragraphs']:
+                        if para.strip():
+                            content.append(Paragraph(para.strip(), body_style))
+                            content.append(Spacer(1, 6))
+                
+                # Process inline images
+                if 'inline_images' in chapter_content and chapter_content['inline_images']:
+                    for img_info in chapter_content['inline_images']:
+                        img_path = download_image(img_info['src'], "temp_images", f"{safe_volume_name}_chapter{chapter['chapter_num']}_inline_{chapter_content['inline_images'].index(img_info)+1}")
+                        if img_path and os.path.exists(img_path):
+                            try:
+                                # Get original image dimensions
+                                with PILImage.open(img_path) as pil_img:
+                                    orig_width, orig_height = pil_img.size
+                                    aspect_ratio = orig_width / orig_height
+                                
+                                # Calculate dimensions while preserving aspect ratio
+                                # Use smaller max size for inline images (60% of page width)
+                                inline_max_width = page_width * 0.6
+                                inline_max_height = max_height * 0.4
+                                
+                                if orig_width > orig_height:
+                                    img_width = min(inline_max_width, orig_width)
+                                    img_height = img_width / aspect_ratio
+                                    if img_height > inline_max_height:
+                                        img_height = inline_max_height
+                                        img_width = img_height * aspect_ratio
+                                else:
+                                    img_height = min(inline_max_height, orig_height)
+                                    img_width = img_height * aspect_ratio
+                                    if img_width > inline_max_width:
+                                        img_width = inline_max_width
+                                        img_height = img_width / aspect_ratio
+                                
+                                img = Image(img_path, width=img_width, height=img_height)
+                                content.append(img)
+                                
+                                if img_info.get('caption'):
+                                    caption_style = ParagraphStyle(
+                                        name='CaptionStyle',
+                                        parent=body_style,
+                                        fontSize=10,
+                                        textColor=colors.grey,
+                                        alignment=TA_CENTER,
+                                        spaceAfter=12
+                                    )
+                                    content.append(Paragraph(img_info['caption'], caption_style))
+                                content.append(Spacer(1, 12))
+                                
+                            except Exception as e:
+                                # app.logger.error(f"Error processing inline image: {e}")
+                                content.append(Paragraph(f"[Image: {img_info.get('alt', 'No description')}]", body_style))
+                                content.append(Spacer(1, 6))
+                
+                # Process tables
+                if 'tables' in chapter_content and chapter_content['tables']:
+                    for table_data in chapter_content['tables']:
+                        if table_data:  # Make sure table has rows
+                            # Create ReportLab Table
+                            table = Table(table_data, colWidths=[page_width / len(table_data[0])] * len(table_data[0]))
+                            
+                            # Apply table styling
+                            table.setStyle(TableStyle([
+                                ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                                ('FONTSIZE', (0, 0), (-1, 0), 10),
+                                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                                ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+                                ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+                                ('FONTSIZE', (0, 1), (-1, -1), 9),
+                                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                            ]))
+                            
+                            content.append(table)
+                            content.append(Spacer(1, 12))
+            
             content.append(PageBreak())
         elif chapter['type'] == 'illustrations':
             content.append(Paragraph(f"Illustrations - Chapter {chapter['chapter_num']}", chapter_style))
@@ -414,10 +546,93 @@ def create_pdf(books: dict):
         for chapter in chapters:
             if chapter['type'] == 'text':
                 content.append(Paragraph(f"Chapter {chapter['chapter_num']}", chapter_style))
-                for para in chapter['content'].split('\n'):
-                    if para.strip():
-                        content.append(Paragraph(para.strip(), body_style))
-                        content.append(Spacer(1, 12))
+                
+                # Handle structured content with paragraphs, inline images, and tables
+                chapter_content = chapter['content']
+                
+                if chapter_content:
+                    # Process paragraphs
+                    if 'paragraphs' in chapter_content and chapter_content['paragraphs']:
+                        for para in chapter_content['paragraphs']:
+                            if para.strip():
+                                content.append(Paragraph(para.strip(), body_style))
+                                content.append(Spacer(1, 6))
+                    
+                    # Process inline images
+                    if 'inline_images' in chapter_content and chapter_content['inline_images']:
+                        for img_info in chapter_content['inline_images']:
+                            safe_volume_name = volume.replace(' ', '_').replace('Volume_', 'Vol')
+                            img_path = download_image(img_info['src'], "temp_images", f"{safe_volume_name}_chapter{chapter['chapter_num']}_inline_{chapter_content['inline_images'].index(img_info)+1}")
+                            if img_path and os.path.exists(img_path):
+                                try:
+                                    # Get original image dimensions
+                                    with PILImage.open(img_path) as pil_img:
+                                        orig_width, orig_height = pil_img.size
+                                        aspect_ratio = orig_width / orig_height
+                                    
+                                    # Calculate dimensions while preserving aspect ratio
+                                    # Use smaller max size for inline images (60% of page width)
+                                    inline_max_width = page_width * 0.6
+                                    inline_max_height = max_height * 0.4
+                                    
+                                    if orig_width > orig_height:
+                                        img_width = min(inline_max_width, orig_width)
+                                        img_height = img_width / aspect_ratio
+                                        if img_height > inline_max_height:
+                                            img_height = inline_max_height
+                                            img_width = img_height * aspect_ratio
+                                    else:
+                                        img_height = min(inline_max_height, orig_height)
+                                        img_width = img_height * aspect_ratio
+                                        if img_width > inline_max_width:
+                                            img_width = inline_max_width
+                                            img_height = img_width / aspect_ratio
+                                    
+                                    img = Image(img_path, width=img_width, height=img_height)
+                                    content.append(img)
+                                    
+                                    if img_info.get('caption'):
+                                        caption_style = ParagraphStyle(
+                                            name='CaptionStyle',
+                                            parent=body_style,
+                                            fontSize=10,
+                                            textColor=colors.grey,
+                                            alignment=TA_CENTER,
+                                            spaceAfter=12
+                                        )
+                                        content.append(Paragraph(img_info['caption'], caption_style))
+                                    content.append(Spacer(1, 12))
+                                    
+                                except Exception as e:
+                                    # app.logger.error(f"Error processing inline image: {e}")
+                                    content.append(Paragraph(f"[Image: {img_info.get('alt', 'No description')}]", body_style))
+                                    content.append(Spacer(1, 6))
+                    
+                    # Process tables
+                    if 'tables' in chapter_content and chapter_content['tables']:
+                        for table_data in chapter_content['tables']:
+                            if table_data:  # Make sure table has rows
+                                # Create ReportLab Table
+                                table = Table(table_data, colWidths=[page_width / len(table_data[0])] * len(table_data[0]))
+                                
+                                # Apply table styling
+                                table.setStyle(TableStyle([
+                                    ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                                    ('FONTSIZE', (0, 0), (-1, 0), 10),
+                                    ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                                    ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+                                    ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                                    ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+                                    ('FONTSIZE', (0, 1), (-1, -1), 9),
+                                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                                ]))
+                                
+                                content.append(table)
+                                content.append(Spacer(1, 12))
+                
                 content.append(PageBreak())
             elif chapter['type'] == 'illustrations':
                 content.append(Paragraph(f"Illustrations - Chapter {chapter['chapter_num']}", chapter_style))
