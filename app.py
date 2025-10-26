@@ -313,8 +313,8 @@ def create_single_pdf(volume_name: str, chapters: list):
     
     if not os.path.exists("downloads"):
         os.makedirs("downloads")
-    
-    doc = SimpleDocTemplate(filepath, pagesize=A4, rightMargin=72, leftMargin=72, topMargin=72, bottomMargin=18)
+
+    doc = SimpleDocTemplate(filepath, pagesize=A4, rightMargin=54, leftMargin=54, topMargin=54, bottomMargin=18)
     styles = getSampleStyleSheet()
     title_style = ParagraphStyle(
         name='TitleStyle',
@@ -329,7 +329,8 @@ def create_single_pdf(volume_name: str, chapters: list):
         parent=styles['Heading2'],
         fontSize=18,
         spaceAfter=12,
-        alignment=TA_CENTER
+        alignment=TA_CENTER,
+        fontName='Helvetica-Bold'
     )
 
     body_style = ParagraphStyle(
@@ -504,8 +505,8 @@ def create_pdf(books: dict):
     
     if not os.path.exists("downloads"):
         os.makedirs("downloads")
-    
-    doc = SimpleDocTemplate(filepath, pagesize=A4, rightMargin=72, leftMargin=72, topMargin=72, bottomMargin=18)
+
+    doc = SimpleDocTemplate(filepath, pagesize=A4, rightMargin=54, leftMargin=54, topMargin=54, bottomMargin=18)
     styles = getSampleStyleSheet()
     title_style = ParagraphStyle(
         name='TitleStyle',
@@ -520,7 +521,8 @@ def create_pdf(books: dict):
         parent=styles['Heading2'],
         fontSize=18,
         spaceAfter=12,
-        alignment=TA_CENTER
+        alignment=TA_CENTER,
+        fontName='Helvetica-Bold'
     )
 
     body_style = ParagraphStyle(
