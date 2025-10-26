@@ -270,6 +270,16 @@ def create_single_pdf(volume_name: str, chapters: list):
         fontSize=12,
         spaceAfter=3
     )
+    
+    part_style = ParagraphStyle(
+        name='PartStyle',
+        parent=body_style,
+        fontSize=12,
+        alignment=TA_CENTER,
+        fontName='Helvetica-Bold',
+        spaceAfter=6,
+        spaceBefore=6
+    )
 
     content = []
     
@@ -291,7 +301,10 @@ def create_single_pdf(volume_name: str, chapters: list):
                 if 'paragraphs' in chapter_content and chapter_content['paragraphs']:
                     for para in chapter_content['paragraphs']:
                         if para.strip():
-                            content.append(Paragraph(para.strip(), body_style))
+                            if re.match(r'^Part\s+\d+$', para.strip()):
+                                content.append(Paragraph(para.strip(), part_style))
+                            else:
+                                content.append(Paragraph(para.strip(), body_style))
                             content.append(Spacer(1, 6))
                 
                 if 'inline_images' in chapter_content and chapter_content['inline_images']:
@@ -467,6 +480,16 @@ def create_pdf(books: dict):
         fontSize=12,
         spaceAfter=3
     )
+    
+    part_style = ParagraphStyle(
+        name='PartStyle',
+        parent=body_style,
+        fontSize=12,
+        alignment=TA_CENTER,
+        fontName='Helvetica-Bold',
+        spaceAfter=6,
+        spaceBefore=6
+    )
 
     content = []
     
@@ -489,7 +512,10 @@ def create_pdf(books: dict):
                     if 'paragraphs' in chapter_content and chapter_content['paragraphs']:
                         for para in chapter_content['paragraphs']:
                             if para.strip():
-                                content.append(Paragraph(para.strip(), body_style))
+                                if re.match(r'^Part\s+\d+$', para.strip()):
+                                    content.append(Paragraph(para.strip(), part_style))
+                                else:
+                                    content.append(Paragraph(para.strip(), body_style))
                                 content.append(Spacer(1, 6))
                     
                     if 'inline_images' in chapter_content and chapter_content['inline_images']:
