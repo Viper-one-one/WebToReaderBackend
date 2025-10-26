@@ -387,23 +387,28 @@ def create_single_pdf(volume_name: str, chapters: list):
                                     orig_width, orig_height = pil_img.size
                                     aspect_ratio = orig_width / orig_height
                                 
+                                # Use original size, but scale down if it exceeds page boundaries
                                 # Calculate dimensions while preserving aspect ratio
-                                # Use smaller max size for inline images (60% of page width)
-                                inline_max_width = page_width * 0.6
-                                inline_max_height = max_height * 0.4
-                                
-                                if orig_width > orig_height:
-                                    img_width = min(inline_max_width, orig_width)
-                                    img_height = img_width / aspect_ratio
-                                    if img_height > inline_max_height:
-                                        img_height = inline_max_height
-                                        img_width = img_height * aspect_ratio
-                                else:
-                                    img_height = min(inline_max_height, orig_height)
-                                    img_width = img_height * aspect_ratio
-                                    if img_width > inline_max_width:
-                                        img_width = inline_max_width
+                                if orig_width > max_width or orig_height > max_height:
+                                    # Image is larger than page, scale it down
+                                    if orig_width > orig_height:
+                                        # Landscape - limit by width
+                                        img_width = max_width
                                         img_height = img_width / aspect_ratio
+                                        if img_height > max_height:
+                                            img_height = max_height
+                                            img_width = img_height * aspect_ratio
+                                    else:
+                                        # Portrait - limit by height
+                                        img_height = max_height
+                                        img_width = img_height * aspect_ratio
+                                        if img_width > max_width:
+                                            img_width = max_width
+                                            img_height = img_width / aspect_ratio
+                                else:
+                                    # Image fits within page, use original size
+                                    img_width = orig_width
+                                    img_height = orig_height
                                 
                                 img = Image(img_path, width=img_width, height=img_height)
                                 content.append(img)
@@ -614,23 +619,28 @@ def create_pdf(books: dict):
                                         orig_width, orig_height = pil_img.size
                                         aspect_ratio = orig_width / orig_height
                                     
+                                    # Use original size, but scale down if it exceeds page boundaries
                                     # Calculate dimensions while preserving aspect ratio
-                                    # Use smaller max size for inline images (60% of page width)
-                                    inline_max_width = page_width * 0.6
-                                    inline_max_height = max_height * 0.4
-                                    
-                                    if orig_width > orig_height:
-                                        img_width = min(inline_max_width, orig_width)
-                                        img_height = img_width / aspect_ratio
-                                        if img_height > inline_max_height:
-                                            img_height = inline_max_height
-                                            img_width = img_height * aspect_ratio
-                                    else:
-                                        img_height = min(inline_max_height, orig_height)
-                                        img_width = img_height * aspect_ratio
-                                        if img_width > inline_max_width:
-                                            img_width = inline_max_width
+                                    if orig_width > max_width or orig_height > max_height:
+                                        # Image is larger than page, scale it down
+                                        if orig_width > orig_height:
+                                            # Landscape - limit by width
+                                            img_width = max_width
                                             img_height = img_width / aspect_ratio
+                                            if img_height > max_height:
+                                                img_height = max_height
+                                                img_width = img_height * aspect_ratio
+                                        else:
+                                            # Portrait - limit by height
+                                            img_height = max_height
+                                            img_width = img_height * aspect_ratio
+                                            if img_width > max_width:
+                                                img_width = max_width
+                                                img_height = img_width / aspect_ratio
+                                    else:
+                                        # Image fits within page, use original size
+                                        img_width = orig_width
+                                        img_height = orig_height
                                     
                                     img = Image(img_path, width=img_width, height=img_height)
                                     content.append(img)
