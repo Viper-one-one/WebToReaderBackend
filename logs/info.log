@@ -1,0 +1,74 @@
+2026-01-26 15:06:38 - INFO - Application started - using AppLogger
+2026-01-26 15:07:31 - INFO - Application started - using AppLogger
+2026-01-26 15:07:37 - INFO - Test logging started - using AppLogger
+2026-01-26 15:07:37 - INFO - Test logging complete
+2026-01-26 15:07:37 - WARNING - This is a warning message
+2026-01-26 15:07:37 - ERROR - This is an error message
+2026-01-26 15:07:53 - INFO - Application started - using AppLogger
+2026-01-26 15:08:04 - INFO - Application started - using AppLogger
+2026-01-26 15:08:16 - INFO - Test logging started - using AppLogger
+2026-01-26 15:08:16 - DEBUG - app-downloads directory does not exist, skipping deletion
+2026-01-26 15:08:16 - INFO - Test logging complete
+2026-01-26 15:08:16 - WARNING - This is a warning message
+2026-01-26 15:08:16 - ERROR - This is an error message
+2026-01-26 15:09:01 - INFO - Application started - using AppLogger
+2026-01-26 15:13:00 - INFO - Application started - using AppLogger
+2026-01-26 15:13:04 - INFO - Application started - using AppLogger
+2026-01-26 15:13:09 - INFO - Application started - using AppLogger
+2026-01-26 15:13:13 - INFO - Application started - using AppLogger
+2026-01-26 15:13:16 - INFO - Application started - using AppLogger
+2026-01-26 15:13:21 - INFO - Application started - using AppLogger
+2026-01-26 15:13:23 - INFO - Application started - using AppLogger
+2026-01-26 15:13:26 - INFO - Application started - using AppLogger
+2026-01-26 15:13:27 - INFO - Application started - using AppLogger
+2026-01-26 15:13:28 - INFO - Application started - using AppLogger
+2026-01-26 15:15:28 - INFO - Application started - using AppLogger
+2026-01-26 15:15:31 - INFO - Application started - using AppLogger
+2026-01-26 15:15:32 - INFO - Application started - using AppLogger
+2026-01-26 15:15:53 - INFO - Application started - using AppLogger
+2026-01-26 15:16:57 - INFO - Application started - using AppLogger
+2026-01-26 15:16:59 - INFO - Application started - using AppLogger
+2026-01-26 15:17:02 - INFO - Application started - using AppLogger
+2026-01-26 15:19:30 - INFO - Application started - using AppLogger
+2026-01-26 15:19:31 - INFO - Application started - using AppLogger
+2026-01-26 15:19:33 - INFO - Application started - using AppLogger
+2026-01-26 15:19:33 - INFO - Application started - using AppLogger
+2026-01-26 15:20:37 - INFO - Application started - using AppLogger
+2026-01-26 15:26:51 - INFO - Application started - using AppLogger
+2026-01-26 15:27:03 - INFO - Application started - using AppLogger
+2026-01-26 15:28:04 - INFO - Application started - using AppLogger
+2026-01-26 15:28:13 - DEBUG - Download request received
+2026-01-26 15:28:13 - DEBUG - Processing 1 books in PDF format
+2026-01-26 15:28:15 - DEBUG - Fetching chapter from URL: https://megatranslations5.wordpress.com/redo-of-healer/redo-of-healer-volume-3-prologue-the-healer-wants-a-new-toy/
+2026-01-26 15:28:15 - DEBUG - Fetching chapter from URL: https://megatranslations5.wordpress.com/redo-of-healer/redo-of-healer-volume-3-chapter-1-the-healer-arrives-at-buranikka/
+2026-01-26 15:28:15 - DEBUG - Fetching chapter from URL: https://megatranslations5.wordpress.com/redo-of-healer/redo-of-healer-volume-3-chapter-2-the-healer-meets-the-demon-lord/
+2026-01-26 15:28:16 - DEBUG - Fetching chapter from URL: https://megatranslations5.wordpress.com/redo-of-healer/redo-of-healer-volume-3-chapter-3-the-healer-becomes-the-demon-lords-knight/
+2026-01-26 15:28:16 - DEBUG - Fetching chapter from URL: https://megatranslations5.wordpress.com/redo-of-healer/redo-of-healer-volume-3-chapter-4-the-healer-rolls-the-future-demon-lord-in-the-palm-of-his-hand/
+2026-01-26 15:28:16 - DEBUG - Fetching chapter from URL: https://megatranslations5.wordpress.com/redo-of-healer/redo-of-healer-volume-3-chapter-5-the-healer-tries-playing-with-the-demon-lord/
+2026-01-26 15:28:16 - DEBUG - Fetching chapter from URL: https://megatranslations5.wordpress.com/redo-of-healer/redo-of-healer-volume-3-chapter-6-the-healer-gets-a-new-pet/
+2026-01-26 15:28:17 - DEBUG - Fetching chapter from URL: https://megatranslations5.wordpress.com/redo-of-healer/redo-of-healer-volume-3-chapter-7-the-healer-takes-revenge-for-food/
+2026-01-26 15:28:17 - DEBUG - Fetching chapter from URL: https://megatranslations5.wordpress.com/redo-of-healer/redo-of-healer-volume-3-chapter-8-the-healer-offers-food-for-thought/
+2026-01-26 15:28:17 - DEBUG - Fetching chapter from URL: https://megatranslations5.wordpress.com/redo-of-healer/redo-of-healer-volume-3-chapter-9-the-healer-teaches-the-importance-of-food/
+2026-01-26 15:28:18 - DEBUG - Fetching chapter from URL: https://megatranslations5.wordpress.com/redo-of-healer/redo-of-healer-volume-3-chapter-10-the-healer-finds-a-new-friend/
+2026-01-26 15:28:18 - DEBUG - Fetching chapter from URL: https://megatranslations5.wordpress.com/redo-of-healer/redo-of-healer-volume-3-chapter-11-the-healer-finds-his-target/
+2026-01-26 15:28:18 - DEBUG - Fetching chapter from URL: https://megatranslations5.wordpress.com/redo-of-healer/redo-of-healer-volume-3-chapter-12-the-healer-spends-a-happy-night/
+2026-01-26 15:28:18 - DEBUG - Fetching chapter from URL: https://megatranslations5.wordpress.com/redo-of-healer/redo-of-healer-volume-3-chapter-13-the-healer-becomes-a-pretty-flower/
+2026-01-26 15:28:19 - DEBUG - Fetching chapter from URL: https://megatranslations5.wordpress.com/redo-of-healer/redo-of-healer-volume-3-chapter-14-the-healer-takes-revenge-on-the-sword-hero/
+2026-01-26 15:28:19 - DEBUG - Fetching chapter from URL: https://megatranslations5.wordpress.com/redo-of-healer/redo-of-healer-volume-3-chapter-15-the-healer-plays-a-revenge-game/
+2026-01-26 15:28:19 - DEBUG - Fetching chapter from URL: https://megatranslations5.wordpress.com/redo-of-healer/redo-of-healer-volume-3-chapter-16-the-healer-takes-a-moment-to-rest/
+2026-01-26 15:28:20 - DEBUG - Fetching chapter from URL: https://megatranslations5.wordpress.com/redo-of-healer/redo-of-healer-volume-3-chapter-17-the-healer-makes-a-contract-with-the-divine-arms/
+2026-01-26 15:28:20 - DEBUG - Fetching chapter from URL: https://megatranslations5.wordpress.com/redo-of-healer/redo-of-healer-volume-3-chapter-18-the-healer-is-sad-because-of-princess-norns-brutality/
+2026-01-26 15:28:20 - DEBUG - Fetching chapter from URL: https://megatranslations5.wordpress.com/redo-of-healer/redo-of-healer-volume-3-chapter-19-the-healer-flips-the-table/
+2026-01-26 15:28:21 - DEBUG - Fetching chapter from URL: https://megatranslations5.wordpress.com/redo-of-healer/redo-of-healer-volume-3-chapter-20-the-healer-goes-to-meet-the-princess/
+2026-01-26 15:28:21 - DEBUG - Fetching chapter from URL: https://megatranslations5.wordpress.com/redo-of-healer/redo-of-healer-volume-3-epilogue-the-healer-obtains-princess-norn/
+2026-01-26 15:28:21 - DEBUG - Fetching chapter from URL: https://megatranslations5.wordpress.com/redo-of-healer/redo-of-healer-volume-3-afterword/
+2026-01-26 15:28:21 - DEBUG - Creating PDF files...
+2026-01-26 15:28:21 - DEBUG - Creating PDF for: Volume 3
+2026-01-26 15:30:11 - DEBUG - Created PDF: app-downloads\Vol3_20260126_152821.pdf
+2026-01-26 15:30:11 - DEBUG - Removing temp_images directory after PDF creation
+2026-01-26 15:30:11 - DEBUG - Successfully removed temp_images directory
+2026-01-26 15:30:11 - DEBUG - Sending single PDF: Vol3_20260126_152821.pdf
+2026-01-26 15:30:11 - DEBUG - Removing PDF file after sending: app-downloads\Vol3_20260126_152821.pdf
+2026-01-26 15:30:11 - ERROR - Failed to remove PDF file app-downloads\Vol3_20260126_152821.pdf: [WinError 32] The process cannot access the file because it is being used by another process: 'app-downloads\\Vol3_20260126_152821.pdf'
+2026-01-26 15:30:11 - DEBUG - app-downloads directory not empty, contains: ['Vol1_20260126_151721.pdf', 'Vol1_20260126_151948.pdf', 'Vol1_20260126_152102.pdf', 'Vol3_20260126_152821.pdf', 'Vol5_20260126_151007.pdf', 'Vol6_20260126_151349.pdf']
+2026-01-26 15:32:52 - INFO - Application started - using AppLogger

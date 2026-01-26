@@ -1,0 +1,1 @@
+# Empty __init__.py to make logging a Python package

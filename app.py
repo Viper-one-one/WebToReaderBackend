@@ -15,13 +15,48 @@ from datetime import datetime
 from PIL import Image as PILImage
 import zipfile
 import shutil
+import logging as python_logging
+import sys
+import os
+
+# Add the custom_logging directory to the path and import AppLogger
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'custom_logging'))
+try:
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("logger", os.path.join(os.path.dirname(os.path.abspath(__file__)), 'custom_logging', 'logger.py'))
+    logger_module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(logger_module)
+    AppLogger = logger_module.AppLogger
+except Exception as e:
+    # Fallback to standard logging if AppLogger import fails
+    AppLogger = None
 
 app = Flask(__name__)
 CORS(app, resources={
     r"/process": {"origins": "*", "methods": ["POST", "OPTIONS"]},
     r"/get_books": {"origins": "*", "methods": ["GET", "OPTIONS"]},
-    r"/download": {"origins": "*", "methods": ["POST", "OPTIONS"]}
+    r"/download": {"origins": "*", "methods": ["POST", "OPTIONS"]},
+    r"/confirm-download": {"origins": "*", "methods": ["POST", "OPTIONS"]}
 })
+
+# Initialize logger
+if AppLogger:
+    app_logger = AppLogger()
+    logger = app_logger.logger
+    logger.info("Application started - using AppLogger")
+else:
+    # Fallback to basic file logging
+    os.makedirs('logs', exist_ok=True)
+    python_logging.basicConfig(
+        level=python_logging.DEBUG,
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        handlers=[
+            python_logging.FileHandler('logs/info.log'),
+            python_logging.StreamHandler()
+        ]
+    )
+    logger = python_logging.getLogger(__name__)
+    logger.info("Application started - using basic logging")
 def validate_url(data):
     if data is None:
         return False
@@ -83,6 +118,7 @@ def get_book_names(url):
     
 def fetch_chapter(url):
     print(f"Fetching chapter from URL: {url}")
+    logger.debug(f"Fetching chapter from URL: {url}")
     response = requests.get(url)
     soup = BeautifulSoup(response.content, 'html.parser')
     content = soup.find('div', class_='entry-content alignfull wp-block-post-content has-global-padding is-layout-constrained wp-block-post-content-is-layout-constrained')
@@ -240,10 +276,10 @@ def create_single_pdf(volume_name: str, chapters: list):
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     safe_volume_name = volume_name.replace(' ', '_').replace('Volume_', 'Vol')
     pdf_filename = f"{safe_volume_name}_{timestamp}.pdf"
-    filepath = os.path.join("downloads", pdf_filename)
+    filepath = os.path.join("app-downloads", pdf_filename)
     
-    if not os.path.exists("downloads"):
-        os.makedirs("downloads")
+    if not os.path.exists("app-downloads"):
+        os.makedirs("app-downloads")
 
     doc = SimpleDocTemplate(filepath, pagesize=A4, rightMargin=54, leftMargin=54, topMargin=54, bottomMargin=18)
     styles = getSampleStyleSheet()
@@ -450,10 +486,10 @@ def create_pdf(books: dict):
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     volume_names = '_'.join([vol.replace(' ', '_').replace('Volume_', 'Vol') for vol in books.keys()])
     pdf_filename = f"{volume_names}_{timestamp}.pdf"
-    filepath = os.path.join("downloads", pdf_filename)
+    filepath = os.path.join("app-downloads", pdf_filename)
     
-    if not os.path.exists("downloads"):
-        os.makedirs("downloads")
+    if not os.path.exists("app-downloads"):
+        os.makedirs("app-downloads")
 
     doc = SimpleDocTemplate(filepath, pagesize=A4, rightMargin=54, leftMargin=54, topMargin=54, bottomMargin=18)
     styles = getSampleStyleSheet()
@@ -670,12 +706,21 @@ def create_pdf(books: dict):
         return None
     
 def cleanup_directories():
+    print("Cleaning up directories...")
     import shutil
     try:
-        if os.path.exists("downloads"):
-            shutil.rmtree("downloads")
+        if os.path.exists("app-downloads"):
+            print("Deleting app-downloads directory...")
+            logger.debug("Starting deletion of app-downloads directory")
+            shutil.rmtree("app-downloads")
+            logger.debug("Successfully deleted app-downloads directory")
+            print("Deleted app-downloads directory.")
+        else:
+            logger.debug("app-downloads directory does not exist, skipping deletion")
+            print("app-downloads directory does not exist, skipping deletion.")
     except Exception as e:
-        pass
+        logger.error(f"Failed to delete app-downloads directory: {e}")
+        print(f"Failed to delete app-downloads directory: {e}")
     
     try:
         if os.path.exists("temp_images"):
@@ -716,6 +761,9 @@ def download():
         headers['Access-Control-Allow-Headers'] = 'Content-Type, Accept'
         return response
 
+    print("Download request received")
+    logger.debug("Download request received")
+    
     selected_books = request.json.get('selectedBooks')
     selected_format = request.json.get('format')
     url = request.json.get('url')
@@ -727,6 +775,9 @@ def download():
     if not url:
         return {"error": "No URL provided"}, 400
 
+    print(f"Processing {len(selected_books)} books in {selected_format} format")
+    logger.debug(f"Processing {len(selected_books)} books in {selected_format} format")
+    
     books = get_webpage_content(url)
     if books is None:
         return {"error": "Failed to fetch or parse the webpage"}, 500
@@ -744,46 +795,173 @@ def download():
     
     pdf_paths = []
     if selected_format == 'PDF' or selected_format == 'pdf':
+        print("Creating PDF files...")
+        logger.debug("Creating PDF files...")
+        
         for volume_name, chapters in processed_books.items():
+            print(f"Creating PDF for: {volume_name}")
+            logger.debug(f"Creating PDF for: {volume_name}")
             pdf_path = create_single_pdf(volume_name, chapters)
             if pdf_path:
                 pdf_paths.append(pdf_path)
+                print(f"Created PDF: {pdf_path}")
+                logger.debug(f"Created PDF: {pdf_path}")
         
         if not pdf_paths:
             return {"error": "Failed to create PDFs"}, 500
         
+        # Clean up temp_images after PDF creation
         try:
             if os.path.exists("temp_images"):
+                print("Removing temp_images directory after PDF creation")
+                logger.debug("Removing temp_images directory after PDF creation")
                 shutil.rmtree("temp_images")
+                print("Successfully removed temp_images directory")
+                logger.debug("Successfully removed temp_images directory")
         except Exception as e:
-            pass
+            print(f"Failed to remove temp_images: {e}")
+            logger.error(f"Failed to remove temp_images: {e}")
         
         if len(pdf_paths) == 1:
-            return send_file(pdf_paths[0], as_attachment=True, download_name=os.path.basename(pdf_paths[0]), mimetype='application/pdf')
+            # Single PDF - send it but don't clean up yet
+            pdf_path = pdf_paths[0]
+            print(f"Sending single PDF: {os.path.basename(pdf_path)}")
+            logger.debug(f"Sending single PDF: {os.path.basename(pdf_path)}")
+            
+            return send_file(pdf_path, as_attachment=True, download_name=os.path.basename(pdf_path), mimetype='application/pdf')
         
+        # Multiple PDFs - create zip and clean up
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         zip_filename = f"books_{timestamp}.zip"
-        zip_filepath = os.path.join("downloads", zip_filename)
+        zip_filepath = os.path.join("app-downloads", zip_filename)
+        
+        print(f"Creating ZIP file with {len(pdf_paths)} PDFs: {zip_filename}")
+        logger.debug(f"Creating ZIP file with {len(pdf_paths)} PDFs: {zip_filename}")
         
         with zipfile.ZipFile(zip_filepath, 'w', zipfile.ZIP_DEFLATED) as zipf:
             for pdf_path in pdf_paths:
                 zipf.write(pdf_path, os.path.basename(pdf_path))
+                print(f"Added {os.path.basename(pdf_path)} to ZIP")
+                logger.debug(f"Added {os.path.basename(pdf_path)} to ZIP")
         
+        # Remove individual PDF files
         for pdf_path in pdf_paths:
             try:
+                print(f"Removing temporary PDF file: {pdf_path}")
+                logger.debug(f"Removing temporary PDF file: {pdf_path}")
                 os.remove(pdf_path)
+                print(f"Successfully removed PDF file: {pdf_path}")
+                logger.debug(f"Successfully removed PDF file: {pdf_path}")
             except Exception as e:
-                pass
+                print(f"Failed to remove PDF file {pdf_path}: {e}")
+                logger.error(f"Failed to remove PDF file {pdf_path}: {e}")
         
+        print(f"Sending ZIP file: {zip_filename}")
+        logger.debug(f"Sending ZIP file: {zip_filename}")
         return send_file(zip_filepath, as_attachment=True, download_name=zip_filename, mimetype='application/zip')
         
     elif selected_format == 'EPUB' or selected_format == 'epub':
+        print("Creating EPUB file...")
+        logger.debug("Creating EPUB file...")
         path = create_epub(processed_books)
         if not path:
             return {"error": "Failed to create EPUB"}, 500
+        
+        print(f"Sending EPUB file: {os.path.basename(path)}")
+        logger.debug(f"Sending EPUB file: {os.path.basename(path)}")
         return send_file(path, as_attachment=True, download_name=os.path.basename(path))
     
     return {"error": "Unsupported format"}, 400
+    
+
+@app.route('/confirm-download', methods=['POST', 'OPTIONS'])
+def confirm_download():
+    if request.method == 'OPTIONS':
+        response = app.make_default_options_response()
+        headers = response.headers
+        headers['Access-Control-Allow-Origin'] = '*'
+        headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
+        headers['Access-Control-Allow-Headers'] = 'Content-Type, Accept'
+        return response
+    
+    print("Download confirmation received - starting cleanup")
+    logger.info("Download confirmation received - starting cleanup")
+    
+    try:
+        filename = request.json.get('filename') if request.json else None
+        
+        # If specific filename provided, try to remove it first
+        if filename:
+            file_path = os.path.join("app-downloads", filename)
+            if os.path.exists(file_path):
+                try:
+                    print(f"Removing specific file: {file_path}")
+                    logger.debug(f"Removing specific file: {file_path}")
+                    os.remove(file_path)
+                    print(f"Successfully removed file: {file_path}")
+                    logger.debug(f"Successfully removed file: {file_path}")
+                except Exception as e:
+                    print(f"Failed to remove file {file_path}: {e}")
+                    logger.error(f"Failed to remove file {file_path}: {e}")
+        
+        # Clean up entire app-downloads directory
+        if os.path.exists("app-downloads"):
+            files_in_dir = os.listdir("app-downloads")
+            if files_in_dir:
+                print(f"Cleaning up {len(files_in_dir)} files in app-downloads: {files_in_dir}")
+                logger.debug(f"Cleaning up {len(files_in_dir)} files in app-downloads: {files_in_dir}")
+                
+                for file in files_in_dir:
+                    try:
+                        file_path = os.path.join("app-downloads", file)
+                        print(f"Removing file: {file_path}")
+                        logger.debug(f"Removing file: {file_path}")
+                        os.remove(file_path)
+                        print(f"Successfully removed file: {file_path}")
+                        logger.debug(f"Successfully removed file: {file_path}")
+                    except Exception as e:
+                        print(f"Failed to remove file {file_path}: {e}")
+                        logger.error(f"Failed to remove file {file_path}: {e}")
+            
+            # Remove empty app-downloads directory
+            try:
+                if not os.listdir("app-downloads"):
+                    print("Removing empty app-downloads directory")
+                    logger.debug("Removing empty app-downloads directory")
+                    os.rmdir("app-downloads")
+                    print("Successfully removed empty app-downloads directory")
+                    logger.debug("Successfully removed empty app-downloads directory")
+                else:
+                    remaining_files = os.listdir("app-downloads")
+                    print(f"app-downloads directory not empty, contains: {remaining_files}")
+                    logger.debug(f"app-downloads directory not empty, contains: {remaining_files}")
+            except Exception as e:
+                print(f"Failed to remove app-downloads directory: {e}")
+                logger.error(f"Failed to remove app-downloads directory: {e}")
+        else:
+            print("app-downloads directory does not exist")
+            logger.debug("app-downloads directory does not exist")
+        
+        # Also clean up temp_images if it exists
+        if os.path.exists("temp_images"):
+            try:
+                print("Removing temp_images directory")
+                logger.debug("Removing temp_images directory")
+                shutil.rmtree("temp_images")
+                print("Successfully removed temp_images directory")
+                logger.debug("Successfully removed temp_images directory")
+            except Exception as e:
+                print(f"Failed to remove temp_images directory: {e}")
+                logger.error(f"Failed to remove temp_images directory: {e}")
+        
+        print("Cleanup completed successfully")
+        logger.info("Cleanup completed successfully")
+        return {"status": "success", "message": "Cleanup completed"}, 200
+        
+    except Exception as e:
+        print(f"Error during cleanup: {e}")
+        logger.error(f"Error during cleanup: {e}")
+        return {"status": "error", "message": str(e)}, 500
     
 
 @app.before_request
@@ -804,3 +982,17 @@ def log_response_info(response):
     except Exception as e:
         pass
     return response
+
+
+if __name__ == '__main__':
+    print("Starting Flask application...")
+    logger.info("Starting Flask application...")
+    
+    # Clean up any leftover files from previous runs
+    print("Performing startup cleanup...")
+    logger.info("Performing startup cleanup...")
+    cleanup_directories()
+    
+    print("Flask application ready!")
+    logger.info("Flask application ready!")
+    app.run(debug=True, host='0.0.0.0', port=5000)
