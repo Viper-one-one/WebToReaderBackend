@@ -72,3 +72,53 @@
 2026-01-26 15:30:11 - ERROR - Failed to remove PDF file app-downloads\Vol3_20260126_152821.pdf: [WinError 32] The process cannot access the file because it is being used by another process: 'app-downloads\\Vol3_20260126_152821.pdf'
 2026-01-26 15:30:11 - DEBUG - app-downloads directory not empty, contains: ['Vol1_20260126_151721.pdf', 'Vol1_20260126_151948.pdf', 'Vol1_20260126_152102.pdf', 'Vol3_20260126_152821.pdf', 'Vol5_20260126_151007.pdf', 'Vol6_20260126_151349.pdf']
 2026-01-26 15:32:52 - INFO - Application started - using AppLogger
+2026-01-26 15:34:29 - INFO - Application started - using AppLogger
+2026-01-26 15:41:13 - DEBUG - Download request received
+2026-01-26 15:41:13 - DEBUG - Processing 1 books in PDF format
+2026-01-26 15:41:15 - DEBUG - Fetching chapter from URL: https://megatranslations5.wordpress.com/redo-of-healer/redo-of-healer-volume-7-prologue-the-healer-searches-for-his-lover/
+2026-01-26 15:41:15 - DEBUG - Fetching chapter from URL: https://megatranslations5.wordpress.com/redo-of-healer/redo-of-healer-volume-7-chapter-1-the-healer-resumes-his-revenge/
+2026-01-26 15:41:16 - DEBUG - Fetching chapter from URL: https://megatranslations5.wordpress.com/redo-of-healer/redo-of-healer-volume-7-chapter-2-the-healer-educates-his-pet/
+2026-01-26 15:41:16 - DEBUG - Fetching chapter from URL: https://megatranslations5.wordpress.com/redo-of-healer/redo-of-healer-volume-7-chapter-3-the-healer-embraces-his-lover/
+2026-01-26 15:41:17 - DEBUG - Fetching chapter from URL: https://megatranslations5.wordpress.com/redo-of-healer/redo-of-healer-volume-7-chapter-4-the-healer-purges/
+2026-01-26 15:41:17 - DEBUG - Fetching chapter from URL: https://megatranslations5.wordpress.com/redo-of-healer/redo-of-healer-volume-7-chapter-5-the-healer-reveals-their-sins/
+2026-01-26 15:41:18 - DEBUG - Fetching chapter from URL: https://megatranslations5.wordpress.com/redo-of-healer/redo-of-healer-volume-7-chapter-6-the-healer-loves-his-pet/
+2026-01-26 15:41:18 - DEBUG - Fetching chapter from URL: https://megatranslations5.wordpress.com/redo-of-healer/redo-of-healer-volume-7-chapter-7-the-healer-obtains-an-unexpected-treasure/
+2026-01-26 15:41:19 - DEBUG - Fetching chapter from URL: https://megatranslations5.wordpress.com/redo-of-healer/redo-of-healer-volume-7-chapter-8-the-healer-visits-the-city-of-sand/
+2026-01-26 15:41:19 - DEBUG - Fetching chapter from URL: https://megatranslations5.wordpress.com/redo-of-healer/redo-of-healer-volume-7-chapter-9-the-healer-is-kidnapped/
+2026-01-26 15:41:19 - DEBUG - Fetching chapter from URL: https://megatranslations5.wordpress.com/redo-of-healer/redo-of-healer-volume-7-chapter-10-the-healer-draws-the-line/
+2026-01-26 15:41:20 - DEBUG - Fetching chapter from URL: https://megatranslations5.wordpress.com/redo-of-healer/redo-of-healer-volume-7-chapter-11-the-healer-is-set-up/
+2026-01-26 15:41:20 - DEBUG - Fetching chapter from URL: https://megatranslations5.wordpress.com/redo-of-healer/redo-of-healer-volume-7-chapter-12-the-healer-takes-a-shortcut/
+2026-01-26 15:41:21 - DEBUG - Fetching chapter from URL: https://megatranslations5.wordpress.com/redo-of-healer/redo-of-healer-volume-7-chapter-13-the-healer-considers/
+2026-01-26 15:41:21 - DEBUG - Fetching chapter from URL: https://megatranslations5.wordpress.com/redo-of-healer/redo-of-healer-volume-7-chapter-14-the-healer-makes-it-in-time/
+2026-01-26 15:41:22 - DEBUG - Fetching chapter from URL: https://megatranslations5.wordpress.com/redo-of-healer/redo-of-healer-volume-7-chapter-15-the-healer-bombs/
+2026-01-26 15:41:22 - DEBUG - Fetching chapter from URL: https://megatranslations5.wordpress.com/redo-of-healer/redo-of-healer-volume-7-chapter-16-the-healer-plots/
+2026-01-26 15:41:23 - DEBUG - Fetching chapter from URL: https://megatranslations5.wordpress.com/redo-of-healer/redo-of-healer-volume-7-chapter-17-the-healer-walks-into-a-trap/
+2026-01-26 15:41:23 - DEBUG - Fetching chapter from URL: https://megatranslations5.wordpress.com/redo-of-healer/redo-of-healer-volume-7-chapter-18-the-healer-makes-an-oath/
+2026-01-26 15:41:24 - DEBUG - Fetching chapter from URL: https://megatranslations5.wordpress.com/redo-of-healer/redo-of-healer-volume-7-chapter-19-the-healer-loses/
+2026-01-26 15:41:24 - DEBUG - Fetching chapter from URL: https://megatranslations5.wordpress.com/redo-of-healer/redo-of-healer-volume-7-epilogue-the-healer-will-try-again/
+2026-01-26 15:41:25 - DEBUG - Fetching chapter from URL: https://megatranslations5.wordpress.com/redo-of-healer/redo-of-healer-volume-7-afterword/
+2026-01-26 15:41:25 - DEBUG - Creating PDF files...
+2026-01-26 15:41:25 - DEBUG - Creating PDF for: Volume 7
+2026-01-26 15:41:55 - DEBUG - Created PDF: app-downloads\Vol7_20260126_154125.pdf
+2026-01-26 15:41:55 - DEBUG - Removing temp_images directory after PDF creation
+2026-01-26 15:41:55 - DEBUG - Successfully removed temp_images directory
+2026-01-26 15:41:55 - DEBUG - Sending single PDF: Vol7_20260126_154125.pdf
+2026-01-26 15:41:56 - INFO - Download confirmation received - starting cleanup
+2026-01-26 15:41:56 - DEBUG - Cleaning up 7 files in app-downloads: ['Vol1_20260126_151721.pdf', 'Vol1_20260126_151948.pdf', 'Vol1_20260126_152102.pdf', 'Vol3_20260126_152821.pdf', 'Vol5_20260126_151007.pdf', 'Vol6_20260126_151349.pdf', 'Vol7_20260126_154125.pdf']
+2026-01-26 15:41:56 - DEBUG - Removing file: app-downloads\Vol1_20260126_151721.pdf
+2026-01-26 15:41:56 - DEBUG - Successfully removed file: app-downloads\Vol1_20260126_151721.pdf
+2026-01-26 15:41:56 - DEBUG - Removing file: app-downloads\Vol1_20260126_151948.pdf
+2026-01-26 15:41:56 - DEBUG - Successfully removed file: app-downloads\Vol1_20260126_151948.pdf
+2026-01-26 15:41:56 - DEBUG - Removing file: app-downloads\Vol1_20260126_152102.pdf
+2026-01-26 15:41:56 - DEBUG - Successfully removed file: app-downloads\Vol1_20260126_152102.pdf
+2026-01-26 15:41:56 - DEBUG - Removing file: app-downloads\Vol3_20260126_152821.pdf
+2026-01-26 15:41:56 - DEBUG - Successfully removed file: app-downloads\Vol3_20260126_152821.pdf
+2026-01-26 15:41:56 - DEBUG - Removing file: app-downloads\Vol5_20260126_151007.pdf
+2026-01-26 15:41:56 - DEBUG - Successfully removed file: app-downloads\Vol5_20260126_151007.pdf
+2026-01-26 15:41:56 - DEBUG - Removing file: app-downloads\Vol6_20260126_151349.pdf
+2026-01-26 15:41:56 - DEBUG - Successfully removed file: app-downloads\Vol6_20260126_151349.pdf
+2026-01-26 15:41:56 - DEBUG - Removing file: app-downloads\Vol7_20260126_154125.pdf
+2026-01-26 15:41:56 - DEBUG - Successfully removed file: app-downloads\Vol7_20260126_154125.pdf
+2026-01-26 15:41:56 - DEBUG - Removing empty app-downloads directory
+2026-01-26 15:41:56 - DEBUG - Successfully removed empty app-downloads directory
+2026-01-26 15:41:56 - INFO - Cleanup completed successfully
